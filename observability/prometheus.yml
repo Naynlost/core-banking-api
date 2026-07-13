@@ -1,0 +1,10 @@
+# Scrapes the Banking API's /metrics endpoint (OpenTelemetry Prometheus exporter).
+# The API runs on the host during development; host.docker.internal reaches it
+# from inside the container on Docker Desktop and (via extra_hosts) on Linux.
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: banking-api
+    static_configs:
+      - targets: ["host.docker.internal:5000"]

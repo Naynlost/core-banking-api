@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+.git/
+.github/
+tests/
+observability/
+docker-compose.yml
+README.md

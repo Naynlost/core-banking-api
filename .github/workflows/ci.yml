@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  build-test-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu indir
+        uses: actions/checkout@v4
+
+      - name: .NET SDK kurulumu
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Banking.slnx
+
+      - name: Build
+        run: dotnet build Banking.slnx -c Release --no-restore
+
+      # Integration testleri Testcontainers ile gerçek PostgreSQL + RabbitMQ
+      # konteynerleri kaldırır; GitHub'ın ubuntu runner'ında Docker hazırdır.
+      - name: Test
+        run: dotnet test Banking.slnx -c Release --no-build
+
+      - name: Docker imajı
+        run: docker build -t banking-api .

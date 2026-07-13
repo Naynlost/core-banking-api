@@ -1,0 +1,73 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: banking-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-banking}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-banking_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-banking}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: banking-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-banking}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-banking_dev}
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI -> http://localhost:15672
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: banking-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # API runs on the host during development
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana-oss:12.0.0
+    container_name: banking-grafana
+    environment:
+      # Local dev only: open the dashboard without a login step.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+  jaeger:
+    image: jaegertracing/jaeger:2.6.0
+    container_name: banking-jaeger
+    ports:
+      - "16686:16686" # UI -> http://localhost:16686
+      - "4317:4317"   # OTLP gRPC (the API exports traces here)
+      - "4318:4318"   # OTLP HTTP
+
+volumes:
+  postgres-data:
+  rabbitmq-data:

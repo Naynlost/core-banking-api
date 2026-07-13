@@ -1,0 +1,132 @@
+using Banking.Application.Abstractions;
+using Banking.Domain.Accounts;
+using Banking.Domain.Ledgers;
+
+namespace Banking.Application.Tests.Fakes;
+
+internal sealed class InMemoryAccountRepository : IAccountRepository
+{
+    private readonly Dictionary<AccountId, Account> _accounts = [];
+
+    public IReadOnlyCollection<Account> Accounts => _accounts.Values;
+
+    public Task<Account?> GetByIdAsync(AccountId id, CancellationToken cancellationToken) =>
+        Task.FromResult(_accounts.GetValueOrDefault(id));
+
+    public Task AddAsync(Account account, CancellationToken cancellationToken)
+    {
+        _accounts[account.Id] = account;
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class InMemoryTransactionRepository : ITransactionRepository
+{
+    private readonly Dictionary<AccountId, EntryTotals> _totals = [];
+    private decimal _transferredToday;
+
+    public List<Transaction> Added { get; } = [];
+
+    public void SetTotals(AccountId accountId, decimal debits, decimal credits) =>
+        _totals[accountId] = new EntryTotals(debits, credits);
+
+    public void SetTransferredToday(decimal amount) => _transferredToday = amount;
+
+    public Task AddAsync(Transaction transaction, CancellationToken cancellationToken)
+    {
+        Added.Add(transaction);
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<Transaction>> GetByAccountIdAsync(
+        AccountId accountId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<Transaction>>(
+            Added.Where(t => t.Entries.Any(e => e.AccountId == accountId)).ToList());
+
+    public Task<EntryTotals> GetEntryTotalsAsync(AccountId accountId, CancellationToken cancellationToken) =>
+        Task.FromResult(_totals.GetValueOrDefault(accountId));
+
+    public Task<decimal> GetTransferredTotalAsync(
+        AccountId accountId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken) =>
+        Task.FromResult(_transferredToday);
+
+    public Task<int> CountTransfersAsync(
+        AccountId accountId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken) =>
+        Task.FromResult(Added.Count(t =>
+            t.Entries.Any(e => e.AccountId == accountId && e.Direction == EntryDirection.Debit)));
+}
+
+/// <summary>
+/// Mimics the transactional coupling between the idempotency table and the unit
+/// of work: staged records become visible only after a successful save, and are
+/// discarded when the save fails — exactly like a database rollback.
+/// </summary>
+internal sealed class StagingIdempotencyStore : IIdempotencyStore
+{
+    private readonly Dictionary<(string Key, string UserId), IdempotencyRecord> _committed = [];
+    private readonly List<IdempotencyRecord> _pending = [];
+
+    public IReadOnlyCollection<IdempotencyRecord> Committed => _committed.Values;
+
+    public void SeedCommitted(IdempotencyRecord record) => _committed[(record.Key, record.UserId)] = record;
+
+    public Task<IdempotencyRecord?> GetAsync(string key, string userId, CancellationToken cancellationToken) =>
+        Task.FromResult(_committed.GetValueOrDefault((key, userId)));
+
+    public Task AddAsync(IdempotencyRecord record, CancellationToken cancellationToken)
+    {
+        _pending.Add(record);
+        return Task.CompletedTask;
+    }
+
+    public void CommitPending()
+    {
+        foreach (var record in _pending)
+        {
+            _committed[(record.Key, record.UserId)] = record;
+        }
+
+        _pending.Clear();
+    }
+
+    public void DiscardPending() => _pending.Clear();
+}
+
+internal sealed class InMemoryOutbox : IOutbox
+{
+    public List<object> Enqueued { get; } = [];
+
+    public Task EnqueueAsync<TEvent>(TEvent @event, CancellationToken cancellationToken)
+        where TEvent : class
+    {
+        Enqueued.Add(@event);
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class FakeUnitOfWork(StagingIdempotencyStore? idempotencyStore = null) : IUnitOfWork
+{
+    /// <summary>Exceptions to throw on successive saves before finally succeeding.</summary>
+    public Queue<Exception> PendingFailures { get; } = new();
+
+    public int SaveCount { get; private set; }
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        SaveCount++;
+
+        if (PendingFailures.Count > 0)
+        {
+            idempotencyStore?.DiscardPending();
+            throw PendingFailures.Dequeue();
+        }
+
+        idempotencyStore?.CommitPending();
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
+{
+    public override DateTimeOffset GetUtcNow() => now;
+}
