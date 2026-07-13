@@ -11,22 +11,22 @@ değişmez (immutable) defter kayıtlarından türeten **çift taraflı muhasebe
 
 ## Öne çıkanlar
 
-- **Double-entry ledger** — her hareket en az iki satır (borç + alacak), toplam daima sıfır;
+- **Double-entry ledger** her hareket en az iki satır (borç + alacak), toplam daima sıfır;
   defter append-only, düzeltme ters kayıtla. Bakiye, satırlardan türetilir.
 - **Para asla `double` değil** — `Money` value object'i (`decimal` + para birimi), aritmetik
   tek yerde.
-- **Idempotent transferler** — `Idempotency-Key` başlığı; aynı anahtar ikinci kez gelirse
+- **Idempotent transferler** `Idempotency-Key` başlığı; aynı anahtar ikinci kez gelirse
   işlem tekrarlanmaz, ilk sonucun aynısı döner. Eşzamanlı aynı-anahtar yarışını veritabanı
   unique constraint'i çözer.
-- **Optimistic locking** — hesap başına versiyon sayacı; paralel transferler bakiyeyi bozamaz
+- **Optimistic locking** hesap başına versiyon sayacı; paralel transferler bakiyeyi bozamaz
   (testle kanıtlı: bakiyenin iki katı tutarında 20 paralel transfer → overdraft yok).
-- **Outbox pattern** — olay, transferle aynı DB transaction'ında yazılır; background publisher
+- **Outbox pattern**  olay, transferle aynı DB transaction'ında yazılır; background publisher
   RabbitMQ'ya publisher confirm'le basar. Uygulama çökse bile olay kaybolmaz; consumer'lar
   inbox tablosuyla dedupe yapar (at-least-once → effectively-once).
 - **Risk kontrolleri** — hesap başına günlük transfer limiti, KYC durumu (doğrulanmamış hesap
   transfer gönderemez), kural tabanlı fraud taraması (eşik üstü tutar, yüksek hız) →
   `fraud_alerts`.
-- **Gözlemlenebilirlik** — Serilog structured log + correlation id (istekten consumer'a kadar
+- **Gözlemlenebilirlik** Serilog structured log + correlation id (istekten consumer'a kadar
   taşınır), OpenTelemetry tracing (istek → handler → DB → kuyruk → consumer TEK trace),
   Prometheus metrikleri + hazır Grafana dashboard'u.
 - **Kendi CQRS dispatcher'ımız** — dış kütüphane yok; `ICommand`/`IQuery` + DI'dan çözen,
@@ -135,7 +135,7 @@ dotnet test
   fraud işaretlemesi; ve kritik akışın **gerçek HTTP pipeline** üzerinden tamamı —
   kayıt → giriş → hesap aç → KYC → transfer → olayın iki consumer'ca işlendiğinin doğrulanması.
 
-## Teknoloji seçimleri — ve neden hepsi ücretsiz
+## Teknoloji seçimleri 
 
 .NET ekosisteminde bazı popüler kütüphaneler ticari lisansa geçti. Bu proje bilinçli olarak
 sıfır maliyetli, açık kaynak alternatiflerle kuruldu — çoğu yerde bu, daha az sihir ve daha
@@ -155,21 +155,21 @@ Altyapı da öyle: PostgreSQL, RabbitMQ, Prometheus, Grafana OSS, Jaeger — tam
 
 ## Yapılanlar
 
-- [x] **Aşama 0 — İskelet:** 4 projeli solution, Docker Compose (PostgreSQL 17 + RabbitMQ 4)
-- [x] **Aşama 1 — Domain + ledger:** `Money`, `Account`, `LedgerEntry`, `Transaction`, çift
+- [x] **Aşama 0: İskelet:** 4 projeli solution, Docker Compose (PostgreSQL 17 + RabbitMQ 4)
+- [x] **Aşama 1: Domain + ledger:** `Money`, `Account`, `LedgerEntry`, `Transaction`, çift
       taraflı defter, Result pattern, tüm invariant'lar
-- [x] **Aşama 2 — Kalıcılık:** EF Core 10 + Npgsql, migration'lar, repository + UnitOfWork
-- [x] **Aşama 3 — API + auth:** kendi CQRS dispatcher'ı, ASP.NET Core Identity + JWT,
+- [x] **Aşama 2: Kalıcılık:** EF Core 10 + Npgsql, migration'lar, repository + UnitOfWork
+- [x] **Aşama 3: API + auth:** kendi CQRS dispatcher'ı, ASP.NET Core Identity + JWT,
       ProblemDetails hata eşleme, OpenAPI + Scalar
-- [x] **Aşama 4 — Transfer:** idempotency (aynı transaction'da anahtar kaydı), optimistic
+- [x] **Aşama 4: Transfer:** idempotency (aynı transaction'da anahtar kaydı), optimistic
       locking + retry, paralel transferde para korunumu
-- [x] **Aşama 5 — Asenkron olaylar:** outbox pattern, RabbitMQ publisher (confirm'li),
+- [x] **Aşama 5: Asenkron olaylar:** outbox pattern, RabbitMQ publisher (confirm'li),
       inbox dedupe'lu consumer'lar, restart'a dayanıklılık
-- [x] **Aşama 6 — Risk:** günlük transfer limiti, KYC durumu, kural tabanlı fraud taraması +
+- [x] **Aşama 6: Risk:** günlük transfer limiti, KYC durumu, kural tabanlı fraud taraması +
       `fraud_alerts`
-- [x] **Aşama 7 — Gözlemlenebilirlik:** Serilog + correlation id, OpenTelemetry tracing
+- [x] **Aşama 7: Gözlemlenebilirlik:** Serilog + correlation id, OpenTelemetry tracing
       (asenkron hop dahil tek trace), Prometheus + Grafana dashboard'u + Jaeger
-- [x] **Aşama 8 — Test + CI + paketleme:** Testcontainers, uçtan uca kritik akış testi,
+- [x] **Aşama 8: Test + CI + paketleme:** Testcontainers, uçtan uca kritik akış testi,
       Dockerfile, GitHub Actions
 
 ## Proje yapısı
