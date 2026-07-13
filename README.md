@@ -1,6 +1,6 @@
 # Banking — Çift Taraflı Defterli Core Banking Backend'i
 
-![CI](https://github.com/KULLANICI_ADI/REPO_ADI/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/Naynlost/Bankacilik/actions/workflows/ci.yml/badge.svg)
 
 C# / ASP.NET Core ile yazılmış dijital bankacılık backend'i. Ticari bir ürün değil;
 bankacılık domain'ini ve production seviyesinde .NET mimarisini gösteren bir **portföy
@@ -8,7 +8,6 @@ projesi**. Sistemin kalbi, bakiyeyi bir kolonda tutmak yerine her finansal harek
 değişmez (immutable) defter kayıtlarından türeten **çift taraflı muhasebe defteri**
 (double-entry ledger).
 
-> Rozet için `KULLANICI_ADI/REPO_ADI` kısmını kendi GitHub deponla değiştir.
 
 ## Öne çıkanlar
 
