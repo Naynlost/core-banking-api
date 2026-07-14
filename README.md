@@ -1,6 +1,6 @@
 # Bankacılık Backend
 
-![CI](https://github.com/Naynlost/Bankacilik/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/Naynlost/core-banking-api/actions/workflows/ci.yml/badge.svg)
 
 ASP.NET Core ile geliştirilmiş core banking backend servisi. Hesap yönetimi, hesaplar arası
 para transferi, kimlik doğrulama, asenkron olay işleme ve risk kontrolleri içerir. Bakiye
