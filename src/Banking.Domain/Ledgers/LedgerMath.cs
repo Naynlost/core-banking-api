@@ -4,9 +4,9 @@ using Banking.Domain.ValueObjects;
 namespace Banking.Domain.Ledgers;
 
 /// <summary>
-/// How a balance is derived from ledger entry totals: assets grow with debits,
-/// liabilities with credits. Single home for the sign rule so the in-memory
-/// ledger and the persistence layer can never disagree.
+/// The sign rule for turning entry totals into a balance: assets grow with
+/// debits, liabilities with credits. Kept in one place so the in-memory ledger
+/// and the persistence layer can't drift apart.
 /// </summary>
 public static class LedgerMath
 {
@@ -16,8 +16,8 @@ public static class LedgerMath
             ? totalDebits - totalCredits
             : totalCredits - totalDebits;
 
-        // Movement rules guarantee a non-negative balance; a negative net here
-        // would mean a broken invariant, which Money.Create surfaces by failing.
+        // The movement rules should make a negative balance impossible. If net
+        // is negative something is broken, and Money.Create will fail loudly.
         return Money.Create(net, account.Currency).Value;
     }
 }

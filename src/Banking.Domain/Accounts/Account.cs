@@ -4,12 +4,12 @@ using Banking.Domain.ValueObjects;
 namespace Banking.Domain.Accounts;
 
 /// <summary>
-/// A bank account. Holds no balance field: the balance is always derived
-/// from the ledger entries posted against the account.
+/// A bank account. Note there is no balance field on purpose: the balance is
+/// always calculated from the ledger entries posted against the account.
 /// </summary>
 public sealed class Account
 {
-    /// <summary>Default cap on the total a customer account may send by transfer per UTC day, in the account's currency.</summary>
+    /// <summary>Default daily transfer cap for customer accounts, in the account's own currency (per UTC day).</summary>
     public const decimal DefaultDailyTransferLimit = 20_000m;
 
     private Account(
@@ -36,7 +36,7 @@ public sealed class Account
 
     public KycStatus KycStatus { get; private set; }
 
-    /// <summary>Total the account may send by transfer per UTC day, in the account's currency.</summary>
+    /// <summary>How much the account can send by transfer per UTC day, in its own currency.</summary>
     public decimal DailyTransferLimit { get; }
 
     public bool IsClosed => Status == AccountStatus.Closed;
@@ -44,16 +44,17 @@ public sealed class Account
     public bool IsKycVerified => KycStatus == KycStatus.Verified;
 
     /// <summary>
-    /// Number of state changes recorded against this account. Ledger entries are
-    /// append-only, so two concurrent movements never collide on data — this counter
-    /// is the optimistic concurrency token that forces such writes to conflict.
+    /// Counts state changes on this account. Ledger entries are append-only, so
+    /// two concurrent movements would never conflict on their own; bumping this
+    /// counter on every movement is what makes them conflict (it's the optimistic
+    /// concurrency token).
     /// </summary>
     public long Version { get; private set; }
 
-    /// <summary>Must be called once for every movement posted against this account.</summary>
+    /// <summary>Call this once for every movement posted against the account.</summary>
     public void RecordMovement() => Version++;
 
-    /// <summary>Opens a customer deposit account (a liability from the bank's perspective). KYC starts pending.</summary>
+    /// <summary>Opens a customer deposit account (a liability from the bank's point of view). KYC starts as Pending.</summary>
     public static Result<Account> Open(string owner, Currency currency)
     {
         if (string.IsNullOrWhiteSpace(owner))
@@ -65,7 +66,7 @@ public sealed class Account
             AccountId.New(), owner.Trim(), currency, AccountType.Liability, AccountStatus.Active, KycStatus.Pending));
     }
 
-    /// <summary>Opens the bank's internal cash account (asset side) for a currency. Never needs KYC.</summary>
+    /// <summary>Opens the bank's own cash account (asset side) for a currency. KYC doesn't apply here.</summary>
     public static Account OpenCash(Currency currency) =>
         new(AccountId.New(), "SYSTEM", currency, AccountType.Asset, AccountStatus.Active, KycStatus.Verified);
 

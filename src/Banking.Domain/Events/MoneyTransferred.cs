@@ -1,9 +1,8 @@
 namespace Banking.Domain.Events;
 
 /// <summary>
-/// Raised when a customer-to-customer transfer has been committed to the ledger.
-/// Published to the message broker through the outbox, so it exists if and only
-/// if the transfer itself exists.
+/// Raised after a customer-to-customer transfer is committed to the ledger.
+/// Goes out through the outbox, so the event exists exactly when the transfer does.
 /// </summary>
 public sealed record MoneyTransferred(
     Guid TransactionId,

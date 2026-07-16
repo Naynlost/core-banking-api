@@ -5,11 +5,11 @@ using Banking.Domain.ValueObjects;
 namespace Banking.Domain.Ledgers;
 
 /// <summary>
-/// The append-only book of transactions. Enforces movement rules (active account,
-/// matching currency, positive amount, sufficient funds) and derives balances
-/// from the entries — no account ever stores a balance field.
-/// Deposits and withdrawals are posted double-entry against the bank's internal
-/// cash account for the relevant currency.
+/// The append-only book of transactions. Validates movements (account open,
+/// matching currency, positive amount, enough funds) and calculates balances
+/// from the entries, since accounts don't store a balance themselves.
+/// Deposits and withdrawals are booked double-entry against the bank's cash
+/// account for that currency.
 /// </summary>
 public sealed class Ledger
 {
@@ -18,7 +18,7 @@ public sealed class Ledger
 
     public IReadOnlyList<Transaction> Transactions => _transactions;
 
-    /// <summary>The bank's internal cash (asset) account for the given currency.</summary>
+    /// <summary>The bank's own cash (asset) account for the given currency.</summary>
     public Account CashAccount(Currency currency)
     {
         if (!_cashAccounts.TryGetValue(currency, out var cash))
@@ -76,7 +76,7 @@ public sealed class Ledger
         Post(TransferPolicy.Transfer(
             source, GetBalance(source), GetTransferredOnDay(source, occurredAt), destination, amount, occurredAt));
 
-    /// <summary>Total the account has already sent by transfer on the given UTC day.</summary>
+    /// <summary>How much the account has already sent by transfer on the given UTC day.</summary>
     public Money GetTransferredOnDay(Account account, DateTimeOffset day)
     {
         var utcDate = day.UtcDateTime.Date;
@@ -91,7 +91,7 @@ public sealed class Ledger
         return Money.Create(total, account.Currency).Value;
     }
 
-    /// <summary>Derives the balance of an account from its ledger entries.</summary>
+    /// <summary>Calculates the account's balance from its ledger entries.</summary>
     public Money GetBalance(Account account)
     {
         decimal debits = 0;

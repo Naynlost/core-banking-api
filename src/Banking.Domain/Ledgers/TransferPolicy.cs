@@ -5,15 +5,15 @@ using Banking.Domain.ValueObjects;
 namespace Banking.Domain.Ledgers;
 
 /// <summary>
-/// The rules of a customer-to-customer transfer, independent of where the
-/// entries are stored. The caller supplies the source account's current balance
-/// and the total it already sent today (both derived from the ledger); on
-/// success a balanced transaction is returned: the source is debited, the
-/// destination credited, cash accounts untouched.
+/// The rules for customer-to-customer transfers, independent of where the
+/// entries are stored. The caller passes in the source account's current
+/// balance and what it has already sent today (both come from the ledger).
+/// On success you get a balanced transaction back: source debited, destination
+/// credited. Cash accounts are not involved in transfers.
 /// </summary>
 public static class TransferPolicy
 {
-    /// <summary>Description shared by all transfer transactions; the daily limit is computed over it.</summary>
+    /// <summary>Every transfer transaction uses this description; the daily limit query filters on it.</summary>
     public const string TransferDescription = "Transfer";
 
     public static Result<Transaction> Transfer(
@@ -34,7 +34,7 @@ public static class TransferPolicy
             return Result.Failure<Transaction>(AccountErrors.Closed);
         }
 
-        // Only the sender needs completed KYC; receiving money stays allowed.
+        // Only the sender needs KYC; receiving money is always allowed.
         if (!source.IsKycVerified)
         {
             return Result.Failure<Transaction>(AccountErrors.KycNotVerified);

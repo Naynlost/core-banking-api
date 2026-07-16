@@ -3,8 +3,8 @@ using Banking.Domain.Primitives;
 namespace Banking.Domain.ValueObjects;
 
 /// <summary>
-/// An amount of money in a single currency. Amounts are always non-negative;
-/// direction (debit/credit) is expressed on the ledger entry, not on the money itself.
+/// An amount of money in a single currency. The amount is never negative;
+/// whether it's a debit or a credit lives on the ledger entry, not here.
 /// </summary>
 public sealed record Money
 {

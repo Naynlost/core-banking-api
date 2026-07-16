@@ -1,8 +1,8 @@
 namespace Banking.Domain.Accounts;
 
 /// <summary>
-/// Know-your-customer verification state. Accounts start unverified and may
-/// not send transfers until verification completes; receiving stays allowed.
+/// KYC verification state. New accounts start as Pending and can't send
+/// transfers until verified. Receiving money is still allowed.
 /// </summary>
 public enum KycStatus
 {

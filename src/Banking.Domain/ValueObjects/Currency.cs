@@ -3,7 +3,7 @@ using Banking.Domain.Primitives;
 namespace Banking.Domain.ValueObjects;
 
 /// <summary>
-/// ISO 4217 currency code. Value object with structural equality.
+/// An ISO 4217 currency code, e.g. "TRY" or "USD".
 /// </summary>
 public sealed record Currency
 {

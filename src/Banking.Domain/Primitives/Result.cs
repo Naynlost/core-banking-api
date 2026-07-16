@@ -1,8 +1,8 @@
 namespace Banking.Domain.Primitives;
 
 /// <summary>
-/// Represents the outcome of a domain operation. Business rule violations are
-/// communicated through failed results instead of exceptions.
+/// Outcome of a domain operation. Business rule violations come back as failed
+/// results; exceptions are kept for actual bugs and infrastructure problems.
 /// </summary>
 public class Result
 {
@@ -38,7 +38,7 @@ public class Result
 }
 
 /// <summary>
-/// A <see cref="Result"/> that carries a value when successful.
+/// A <see cref="Result"/> that also carries a value on success.
 /// </summary>
 public sealed class Result<TValue> : Result
 {
@@ -50,7 +50,7 @@ public sealed class Result<TValue> : Result
         _value = value;
     }
 
-    /// <summary>Accessing the value of a failed result is a programming error.</summary>
+    /// <summary>Throws on a failed result; check IsSuccess before reading this.</summary>
     public TValue Value => IsSuccess
         ? _value!
         : throw new InvalidOperationException($"Cannot access the value of a failed result: {Error}");

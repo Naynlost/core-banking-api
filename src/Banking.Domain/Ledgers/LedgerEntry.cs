@@ -4,14 +4,13 @@ using Banking.Domain.ValueObjects;
 namespace Banking.Domain.Ledgers;
 
 /// <summary>
-/// A single immutable line in the ledger: one account is debited or credited
-/// by a positive amount as part of a transaction. Entries are never updated
-/// or deleted; corrections are made by posting reversal entries.
+/// One immutable line in the ledger: an account gets debited or credited by a
+/// positive amount as part of a transaction. Entries are never updated or
+/// deleted; if something went wrong, post a reversal.
 /// </summary>
 public sealed record LedgerEntry
 {
-    // Materialization-only constructor: filled by the persistence layer from
-    // already-validated rows.
+    // For EF materialization only; the data was validated when it was written.
     private LedgerEntry()
     {
         Amount = null!;
@@ -39,15 +38,15 @@ public sealed record LedgerEntry
 
     public AccountId AccountId { get; }
 
-    /// <summary>Always positive; the sign is carried by <see cref="Direction"/>.</summary>
+    /// <summary>Always positive; <see cref="Direction"/> carries the sign.</summary>
     public Money Amount { get; }
 
     public EntryDirection Direction { get; }
 
     public DateTimeOffset OccurredAt { get; }
 
-    // Entries can only be created through Transaction.Create so that no entry
-    // ever exists outside a balanced transaction.
+    // Internal on purpose: entries are only created via Transaction.Create,
+    // so an entry can't exist outside a balanced transaction.
     internal static LedgerEntry Create(
         TransactionId transactionId,
         AccountId accountId,

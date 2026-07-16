@@ -5,20 +5,19 @@ using Banking.Domain.ValueObjects;
 namespace Banking.Domain.Ledgers;
 
 /// <summary>
-/// Describes one leg of a transaction before it is turned into an immutable ledger entry.
+/// One leg of a transaction before it becomes an immutable ledger entry.
 /// </summary>
 public readonly record struct EntrySpec(AccountId AccountId, Money Amount, EntryDirection Direction);
 
 /// <summary>
-/// A financial transaction: a set of at least two ledger entries in a single
-/// currency where total debits equal total credits (double-entry invariant).
+/// A financial transaction: at least two ledger entries in the same currency,
+/// with total debits equal to total credits (the double-entry invariant).
 /// </summary>
 public sealed class Transaction
 {
     private readonly List<LedgerEntry> _entries;
 
-    // Materialization-only constructor: object stays invariant-free until the
-    // persistence layer fills it from already-validated rows.
+    // For EF materialization only; the data was validated when it was written.
     private Transaction()
     {
         _entries = [];
