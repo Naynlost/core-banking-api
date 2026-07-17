@@ -26,4 +26,8 @@ public static class BankingDiagnostics
     /// <summary>Fraud alerts raised by the screening consumer, tagged by rule.</summary>
     public static readonly Counter<long> FraudAlerts = Meter.CreateCounter<long>(
         "banking.fraud_alerts", description: "Fraud alerts raised, tagged by rule.");
+
+    /// <summary>Deposit/withdrawal commands by kind and outcome ("success" or the error code).</summary>
+    public static readonly Counter<long> CashOperations = Meter.CreateCounter<long>(
+        "banking.cash_operations", description: "Cash operations handled, tagged by kind and outcome.");
 }

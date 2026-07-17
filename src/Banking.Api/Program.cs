@@ -1,8 +1,11 @@
+using System.Threading.RateLimiting;
 using Banking.Api.Middleware;
 using Banking.Api.OpenApi;
 using Banking.Application;
 using Banking.Infrastructure;
 using Banking.Infrastructure.Messaging;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.RateLimiting;
 using Npgsql;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -24,6 +27,21 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+
+// Brute-force guard on the credential endpoints: a small per-IP budget per
+// minute. The limit is configuration so tests can loosen it.
+builder.Services.AddRateLimiter(limiter =>
+{
+    limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    limiter.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = context.RequestServices.GetRequiredService<IConfiguration>()
+                .GetValue("RateLimiting:AuthPermitLimit", 10),
+            Window = TimeSpan.FromMinutes(1),
+        }));
+});
 
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(
@@ -57,10 +75,15 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapPrometheusScrapingEndpoint(); // /metrics for the Prometheus scraper
+
+// Liveness = the process answers; readiness = PostgreSQL and RabbitMQ reachable.
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
 
 app.Run();
 

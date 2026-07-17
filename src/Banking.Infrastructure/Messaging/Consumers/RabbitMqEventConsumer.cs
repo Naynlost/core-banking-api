@@ -124,12 +124,14 @@ internal abstract class RabbitMqEventConsumer(
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             // One redelivery smooths transient failures (broker restart, DB hiccup).
-            // A message that fails twice is poison and is dropped — requeueing it
-            // forever would loop, and there is no dead-letter queue yet.
+            // A message that fails twice is poison: rejecting it without requeue
+            // makes the broker dead-letter it into banking.dead-letters, where it
+            // waits for a human instead of looping or getting lost.
             var requeue = !delivery.Redelivered;
             logger.LogError(
                 exception, "{Consumer} failed to process delivery {DeliveryTag}; {Outcome}",
-                ConsumerName, delivery.DeliveryTag, requeue ? "requeued for one retry" : "message is dropped");
+                ConsumerName, delivery.DeliveryTag,
+                requeue ? "requeued for one retry" : "dead-lettered to " + MessageTopology.DeadLetterQueue);
 
             await channel.BasicNackAsync(delivery.DeliveryTag, multiple: false, requeue, cancellationToken);
         }

@@ -12,6 +12,9 @@ public sealed class Account
     /// <summary>Default daily transfer cap for customer accounts, in the account's own currency (per UTC day).</summary>
     public const decimal DefaultDailyTransferLimit = 20_000m;
 
+    /// <summary>Owner name of the bank's own cash accounts.</summary>
+    public const string SystemOwner = "SYSTEM";
+
     private Account(
         AccountId id, string owner, Currency currency, AccountType type, AccountStatus status, KycStatus kycStatus)
     {
@@ -68,7 +71,7 @@ public sealed class Account
 
     /// <summary>Opens the bank's own cash account (asset side) for a currency. KYC doesn't apply here.</summary>
     public static Account OpenCash(Currency currency) =>
-        new(AccountId.New(), "SYSTEM", currency, AccountType.Asset, AccountStatus.Active, KycStatus.Verified);
+        new(AccountId.New(), SystemOwner, currency, AccountType.Asset, AccountStatus.Active, KycStatus.Verified);
 
     public Result CompleteKyc()
     {
@@ -107,4 +110,7 @@ public static class AccountErrors
     public const string Closed = "account.closed";
     public const string KycNotVerified = "account.kyc_not_verified";
     public const string KycAlreadyVerified = "account.kyc_already_verified";
+
+    /// <summary>An account can only be closed once its ledger balance is zero.</summary>
+    public const string BalanceMustBeZero = "account.balance_must_be_zero";
 }

@@ -10,18 +10,36 @@ tek bir kolonda tutulmaz; tüm finansal hareketler çift taraflı muhasebe defte
 ## Özellikler
 
 - **Çift taraflı defter:** Her finansal hareket en az iki kayıt üretir (borç + alacak) ve
-  toplam her zaman sıfırdır. Defter append-only'dir; düzeltmeler ters kayıtla yapılır.
+  toplam her zaman sıfırdır. Defter append-only'dir; düzeltmeler **ters kayıtla (reversal)**
+  yapılır: `POST /api/transactions/{id}/reversal` orijinali değiştirmez, tüm bacakları ters
+  çevrilmiş dengeleyici bir işlem ekler. Bir işlem en fazla bir kez ters çevrilebilir
+  (unique index ile garanti).
 - **Para modeli:** Tutarlar `decimal` tabanlı `Money` value object'i ile temsil edilir;
-  para birimi uyuşmazlıkları derleme ve çalışma zamanında engellenir.
-- **Idempotent transferler:** `Idempotency-Key` başlığı zorunludur. Aynı anahtarla gelen
-  tekrar istekler yeni işlem yaratmaz, ilk işlemin sonucunu döndürür. Eşzamanlı aynı-anahtar
-  yarışı veritabanı unique constraint'i ile çözülür.
+  para birimi uyuşmazlıkları derleme ve çalışma zamanında engellenir. Bakiye hiçbir yerde
+  saklanmaz; her okumada defterden türetilir ve API'den (`GET /api/accounts/{id}`) okunur.
+- **Hesap yaşam döngüsü:** hesap açma, para yatırma/çekme (`/deposits`, `/withdrawals` —
+  kasa hesabına karşı çift taraflı kayıt), sayfalı ekstre (`GET /api/accounts/{id}/transactions`),
+  bakiye sıfırken kapatma (`POST /api/accounts/{id}/close`).
+- **Idempotent para hareketleri:** Transfer, yatırma ve çekmede `Idempotency-Key` başlığı
+  zorunludur. Aynı anahtarla gelen tekrar istekler yeni işlem yaratmaz, ilk işlemin sonucunu
+  döndürür. Eşzamanlı aynı-anahtar yarışı veritabanı unique constraint'i ile çözülür.
 - **Eşzamanlılık kontrolü:** Hesap başına versiyon sayacı ile optimistic locking uygulanır;
   çakışan işlemler güncel veriyle yeniden denenir. Paralel transferler altında bakiye
   tutarlılığı integration testleriyle doğrulanmıştır.
-- **Outbox pattern:** Domain olayları, işlemi oluşturan veritabanı transaction'ı içinde
+- **Outbox pattern + DLQ:** Domain olayları, işlemi oluşturan veritabanı transaction'ı içinde
   outbox tablosuna yazılır; bir background service olayları RabbitMQ'ya publisher confirm
-  ile yayınlar. Consumer tarafında inbox tablosu ile tekrarlanan teslimatlar ayıklanır.
+  ile yayınlar. Consumer tarafında inbox tablosu ile tekrarlanan teslimatlar ayıklanır;
+  iki kez işlenemeyen (poison) mesajlar kaybolmaz, `banking.dead-letters` kuyruğuna düşer.
+  Outbox/inbox/idempotency tabloları bir retention job'ı ile periyodik temizlenir.
+- **Kimlik doğrulama:** JWT access token + **refresh token rotation** (`POST /api/auth/refresh`;
+  kullanılmış token tekrar sunulursa kullanıcının tüm oturumları iptal edilir; veritabanında
+  yalnızca token hash'i durur). Auth endpoint'lerinde IP başına **rate limiting** ile
+  brute-force koruması.
+- **Doğrulama pipeline'ı:** FluentValidation validator'ları, kendi CQRS dispatcher'ımızın
+  içinde handler'dan önce çalışır; geçersiz komut handler'a hiç ulaşmaz ve domain'le aynı
+  makine-okunur hata kodlarıyla reddedilir.
+- **Health check'ler:** `/health/live` (process ayakta mı) ve `/health/ready`
+  (PostgreSQL + RabbitMQ erişilebilir mi).
 - **Risk kontrolleri:** Hesap başına günlük transfer limiti, KYC durumu (doğrulanmamış
   hesaplar transfer gönderemez) ve kural tabanlı fraud taraması (eşik üstü tutar, kısa
   sürede çok sayıda transfer). Şüpheli işlemler `fraud_alerts` tablosuna işlenir.
@@ -105,10 +123,21 @@ curl -X POST localhost:5000/api/accounts -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" -d '{"currencyCode":"TRY"}'
 curl -X POST localhost:5000/api/accounts/<HESAP_ID>/kyc -H "Authorization: Bearer $TOKEN"
 
+# Para yatırma ve bakiye (bakiye defterden türetilir)
+curl -X POST localhost:5000/api/accounts/<HESAP_ID>/deposits -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" -H "Idempotency-Key: yatir-1" \
+  -d '{"amount":1000,"currencyCode":"TRY"}'
+curl localhost:5000/api/accounts/<HESAP_ID> -H "Authorization: Bearer $TOKEN"
+
 # Transfer
 curl -X POST localhost:5000/api/transfers -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" -H "Idempotency-Key: benzersiz-anahtar-1" \
   -d '{"sourceAccountId":"...","destinationAccountId":"...","amount":100,"currencyCode":"TRY"}'
+
+# Ekstre ve ters kayıt
+curl "localhost:5000/api/accounts/<HESAP_ID>/transactions?page=1&pageSize=20" \
+  -H "Authorization: Bearer $TOKEN"
+curl -X POST localhost:5000/api/transactions/<ISLEM_ID>/reversal -H "Authorization: Bearer $ALICI_TOKEN"
 ```
 
 Docker imajı:
@@ -123,17 +152,20 @@ docker build -t banking-api .
 dotnet test
 ```
 
-Test paketi üç katmandan oluşur (105 test):
+Test paketi üç katmandan oluşur (137 test):
 
 - **Domain birim testleri:** Defter kuralları — dengeli kayıt, yetersiz bakiye, kapalı hesap,
-  para birimi uyuşmazlığı, günlük limit, KYC ve fraud kuralları.
+  para birimi uyuşmazlığı, günlük limit, KYC, fraud kuralları ve ters kayıt (reversal)
+  politikası.
 - **Application testleri:** Handler davranışları — idempotency replay, çakışmada yeniden
-  deneme, outbox'a olay kuyruklanması.
+  deneme, outbox'a olay kuyruklanması, yatırma/çekme, hesap kapatma, reversal ve
+  dispatcher'ın validation pipeline'ı.
 - **Integration ve uçtan uca testler:** Testcontainers her koşuda geçici PostgreSQL 17 ve
   RabbitMQ 4 konteynerleri başlatır; Docker dışında önkoşul yoktur ve CI'da aynı şekilde
   çalışır. Gerçek veritabanında idempotency, paralel transferlerde bakiye tutarlılığı,
-  outbox'ın uygulama yeniden başlatmasına dayanıklılığı ve kayıt → giriş → hesap açma →
-  transfer → olayın consumer'larca işlenmesi akışının tamamı doğrulanır.
+  outbox'ın uygulama yeniden başlatmasına dayanıklılığı, poison mesajın dead-letter
+  kuyruğuna düşmesi, retention temizliği, refresh token rotation'ı, rate limiting ve
+  kayıt → giriş → yatır → transfer → ters kayıt → kapatma akışlarının tamamı doğrulanır.
 
 ## Teknolojiler
 
@@ -142,7 +174,8 @@ Test paketi üç katmandan oluşur (105 test):
 | Framework | .NET 10, ASP.NET Core |
 | Veritabanı | PostgreSQL 17, EF Core, Npgsql |
 | Mesajlaşma | RabbitMQ, RabbitMQ.Client |
-| Kimlik doğrulama | ASP.NET Core Identity, JWT Bearer |
+| Doğrulama | FluentValidation |
+| Kimlik doğrulama | ASP.NET Core Identity, JWT Bearer (+ refresh token rotation) |
 | Loglama / izleme | Serilog, OpenTelemetry, Prometheus, Grafana, Jaeger |
 | Test | xUnit, Shouldly, Testcontainers |
 | API dokümantasyonu | OpenAPI, Scalar |

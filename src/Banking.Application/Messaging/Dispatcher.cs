@@ -10,8 +10,9 @@ namespace Banking.Application.Messaging;
 /// The caller only knows the message's interface (e.g. ICommand&lt;Guid&gt;), so the
 /// concrete handler type is only known at runtime; a small generic wrapper is
 /// instantiated once per message type and cached to keep dispatch reflection-free
-/// after the first call. Every dispatch runs inside its own trace span, so the
-/// request → handler → database chain is visible in traces.
+/// after the first call. Registered validators run before the handler, so an
+/// invalid message never reaches it. Every dispatch runs inside its own trace
+/// span, so the request → handler → database chain is visible in traces.
 /// </summary>
 internal sealed class Dispatcher(IServiceProvider serviceProvider) : IDispatcher
 {
@@ -74,10 +75,19 @@ internal sealed class Dispatcher(IServiceProvider serviceProvider) : IDispatcher
     private sealed class CommandWrapper<TCommand> : CommandWrapper
         where TCommand : ICommand
     {
-        public override Task<Result> HandleAsync(
-            ICommand command, IServiceProvider serviceProvider, CancellationToken cancellationToken) =>
-            serviceProvider.GetRequiredService<ICommandHandler<TCommand>>()
+        public override async Task<Result> HandleAsync(
+            ICommand command, IServiceProvider serviceProvider, CancellationToken cancellationToken)
+        {
+            var violation = await DispatcherValidation.FindFailureAsync(
+                (TCommand)command, serviceProvider, cancellationToken);
+            if (violation is not null)
+            {
+                return Result.Failure(violation);
+            }
+
+            return await serviceProvider.GetRequiredService<ICommandHandler<TCommand>>()
                 .HandleAsync((TCommand)command, cancellationToken);
+        }
     }
 
     private abstract class ResultCommandWrapper<TResult>
@@ -89,10 +99,19 @@ internal sealed class Dispatcher(IServiceProvider serviceProvider) : IDispatcher
     private sealed class ResultCommandWrapper<TCommand, TResult> : ResultCommandWrapper<TResult>
         where TCommand : ICommand<TResult>
     {
-        public override Task<Result<TResult>> HandleAsync(
-            ICommand<TResult> command, IServiceProvider serviceProvider, CancellationToken cancellationToken) =>
-            serviceProvider.GetRequiredService<ICommandHandler<TCommand, TResult>>()
+        public override async Task<Result<TResult>> HandleAsync(
+            ICommand<TResult> command, IServiceProvider serviceProvider, CancellationToken cancellationToken)
+        {
+            var violation = await DispatcherValidation.FindFailureAsync(
+                (TCommand)command, serviceProvider, cancellationToken);
+            if (violation is not null)
+            {
+                return Result.Failure<TResult>(violation);
+            }
+
+            return await serviceProvider.GetRequiredService<ICommandHandler<TCommand, TResult>>()
                 .HandleAsync((TCommand)command, cancellationToken);
+        }
     }
 
     private abstract class QueryWrapper<TResult>
@@ -104,9 +123,18 @@ internal sealed class Dispatcher(IServiceProvider serviceProvider) : IDispatcher
     private sealed class QueryWrapper<TQuery, TResult> : QueryWrapper<TResult>
         where TQuery : IQuery<TResult>
     {
-        public override Task<Result<TResult>> HandleAsync(
-            IQuery<TResult> query, IServiceProvider serviceProvider, CancellationToken cancellationToken) =>
-            serviceProvider.GetRequiredService<IQueryHandler<TQuery, TResult>>()
+        public override async Task<Result<TResult>> HandleAsync(
+            IQuery<TResult> query, IServiceProvider serviceProvider, CancellationToken cancellationToken)
+        {
+            var violation = await DispatcherValidation.FindFailureAsync(
+                (TQuery)query, serviceProvider, cancellationToken);
+            if (violation is not null)
+            {
+                return Result.Failure<TResult>(violation);
+            }
+
+            return await serviceProvider.GetRequiredService<IQueryHandler<TQuery, TResult>>()
                 .HandleAsync((TQuery)query, cancellationToken);
+        }
     }
 }

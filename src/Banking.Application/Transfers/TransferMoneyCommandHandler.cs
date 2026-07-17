@@ -1,5 +1,6 @@
 using Banking.Application.Abstractions;
 using Banking.Application.Accounts;
+using Banking.Application.Common;
 using Banking.Application.Messaging;
 using Banking.Domain.Accounts;
 using Banking.Domain.Events;
@@ -13,72 +14,38 @@ namespace Banking.Application.Transfers;
 /// <summary>
 /// Ledger entries are append-only, so two concurrent transfers never collide on
 /// data; the conflict comes from both bumping the accounts' Version concurrency
-/// token. On such a conflict the whole attempt is retried against fresh state —
-/// each attempt runs in its own scope because a DbContext that failed to save
-/// still tracks the rejected changes.
+/// token. Retries, idempotency replay and the concurrent same-key race are
+/// handled by <see cref="IdempotentMovement"/>.
 /// </summary>
 internal sealed class TransferMoneyCommandHandler(
     IServiceScopeFactory scopeFactory,
     TimeProvider timeProvider) : ICommandHandler<TransferMoneyCommand, Guid>
 {
-    internal const int MaxAttempts = 3;
+    internal const int MaxAttempts = IdempotentMovement.MaxAttempts;
 
     public async Task<Result<Guid>> HandleAsync(TransferMoneyCommand command, CancellationToken cancellationToken)
     {
-        var result = await ExecuteWithRetriesAsync(command, cancellationToken);
+        var result = await IdempotentMovement.ExecuteAsync(
+            scopeFactory,
+            command.IdempotencyKey,
+            command.Requester,
+            TransferErrors.Conflict,
+            (services, ct) => AttemptAsync(services, command, ct),
+            cancellationToken);
+
         BankingDiagnostics.Transfers.Add(
             1, new KeyValuePair<string, object?>("outcome", result.IsSuccess ? "success" : result.Error));
         return result;
     }
 
-    private async Task<Result<Guid>> ExecuteWithRetriesAsync(
-        TransferMoneyCommand command, CancellationToken cancellationToken)
+    private async Task<Result<Guid>> AttemptAsync(
+        IServiceProvider services, TransferMoneyCommand command, CancellationToken cancellationToken)
     {
-        for (var attempt = 1; attempt <= MaxAttempts; attempt++)
-        {
-            try
-            {
-                return await ExecuteOnceAsync(command, cancellationToken);
-            }
-            catch (ConcurrencyConflictException) when (attempt < MaxAttempts)
-            {
-                // Another movement touched one of the accounts; retry on fresh state.
-            }
-            catch (ConcurrencyConflictException)
-            {
-                return Result.Failure<Guid>(TransferErrors.Conflict);
-            }
-            catch (UniqueConstraintViolationException)
-            {
-                // The same idempotency key was committed concurrently: our transfer
-                // rolled back with the failed insert, so return the committed outcome.
-                var stored = await GetStoredResultAsync(command, cancellationToken);
-                if (stored is not null)
-                {
-                    return Result.Success(stored.TransactionId);
-                }
-
-                return Result.Failure<Guid>(TransferErrors.Conflict);
-            }
-        }
-
-        return Result.Failure<Guid>(TransferErrors.Conflict);
-    }
-
-    private async Task<Result<Guid>> ExecuteOnceAsync(TransferMoneyCommand command, CancellationToken cancellationToken)
-    {
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<IAccountRepository>();
-        var transactions = scope.ServiceProvider.GetRequiredService<ITransactionRepository>();
-        var idempotency = scope.ServiceProvider.GetRequiredService<IIdempotencyStore>();
-        var outbox = scope.ServiceProvider.GetRequiredService<IOutbox>();
-        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-
-        var replay = await idempotency.GetAsync(command.IdempotencyKey, command.Requester, cancellationToken);
-        if (replay is not null)
-        {
-            return Result.Success(replay.TransactionId);
-        }
+        var accounts = services.GetRequiredService<IAccountRepository>();
+        var transactions = services.GetRequiredService<ITransactionRepository>();
+        var idempotency = services.GetRequiredService<IIdempotencyStore>();
+        var outbox = services.GetRequiredService<IOutbox>();
+        var unitOfWork = services.GetRequiredService<IUnitOfWork>();
 
         var source = await accounts.GetByIdAsync(new AccountId(command.SourceAccountId), cancellationToken);
         if (source is null || source.Owner != command.Requester)
@@ -142,13 +109,5 @@ internal sealed class TransferMoneyCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success(transfer.Value.Id.Value);
-    }
-
-    private async Task<IdempotencyRecord?> GetStoredResultAsync(
-        TransferMoneyCommand command, CancellationToken cancellationToken)
-    {
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var idempotency = scope.ServiceProvider.GetRequiredService<IIdempotencyStore>();
-        return await idempotency.GetAsync(command.IdempotencyKey, command.Requester, cancellationToken);
     }
 }

@@ -12,4 +12,6 @@ public sealed class JwtOptions
     public string Secret { get; init; } = string.Empty;
 
     public int AccessTokenMinutes { get; init; } = 30;
+
+    public int RefreshTokenDays { get; init; } = 7;
 }

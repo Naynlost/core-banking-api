@@ -10,8 +10,9 @@ namespace Banking.Application.Tests.Accounts;
 public class GetAccountQueryHandlerTests
 {
     private readonly InMemoryAccountRepository _accounts = new();
+    private readonly InMemoryTransactionRepository _transactions = new();
 
-    private GetAccountQueryHandler Handler => new(_accounts);
+    private GetAccountQueryHandler Handler => new(_accounts, _transactions);
 
     private async Task<Account> SeedAccountAsync(string owner)
     {
@@ -21,16 +22,17 @@ public class GetAccountQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ForOwnAccount_ReturnsAccount()
+    public async Task Handle_ForOwnAccount_ReturnsAccountWithDerivedBalance()
     {
         var account = await SeedAccountAsync("user-1");
+        _transactions.SetTotals(account.Id, debits: 40m, credits: 100m); // balance: 60 TRY
 
         var result = await Handler.HandleAsync(
             new GetAccountQuery(account.Id.Value, "user-1"), CancellationToken.None);
 
         result.IsSuccess.ShouldBeTrue();
         result.Value.ShouldBe(new AccountResponse(
-            account.Id.Value, "TRY", "Liability", "Active", "Pending", Account.DefaultDailyTransferLimit));
+            account.Id.Value, "TRY", "Liability", "Active", "Pending", Account.DefaultDailyTransferLimit, 60m));
     }
 
     [Fact]

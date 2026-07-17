@@ -24,12 +24,18 @@ public sealed class Transaction
         Description = null!;
     }
 
-    private Transaction(TransactionId id, string description, DateTimeOffset occurredAt, List<LedgerEntry> entries)
+    private Transaction(
+        TransactionId id,
+        string description,
+        DateTimeOffset occurredAt,
+        List<LedgerEntry> entries,
+        TransactionId? reverses)
     {
         Id = id;
         Description = description;
         OccurredAt = occurredAt;
         _entries = entries;
+        ReversesTransactionId = reverses;
     }
 
     public TransactionId Id { get; }
@@ -38,12 +44,16 @@ public sealed class Transaction
 
     public DateTimeOffset OccurredAt { get; }
 
+    /// <summary>Set when this transaction is the reversal of another one.</summary>
+    public TransactionId? ReversesTransactionId { get; }
+
     public IReadOnlyList<LedgerEntry> Entries => _entries;
 
     public static Result<Transaction> Create(
         string description,
         DateTimeOffset occurredAt,
-        IReadOnlyCollection<EntrySpec> entries)
+        IReadOnlyCollection<EntrySpec> entries,
+        TransactionId? reverses = null)
     {
         if (entries.Count < 2)
         {
@@ -86,7 +96,7 @@ public sealed class Transaction
             .Select(e => LedgerEntry.Create(id, e.AccountId, e.Amount, e.Direction, occurredAt))
             .ToList();
 
-        return Result.Success(new Transaction(id, description, occurredAt, ledgerEntries));
+        return Result.Success(new Transaction(id, description, occurredAt, ledgerEntries, reverses));
     }
 }
 

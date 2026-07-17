@@ -17,10 +17,18 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        return services
+        services
             .AddPersistence(configuration)
             .AddIdentityAndJwtAuth(configuration)
             .AddMessaging(configuration);
+
+        // Liveness is the process itself; these checks carry the "ready" tag so
+        // /health/ready can answer "can I actually serve requests?".
+        services.AddHealthChecks()
+            .AddCheck<Health.PostgresHealthCheck>("postgres", tags: ["ready"])
+            .AddCheck<Health.RabbitMqHealthCheck>("rabbitmq", tags: ["ready"]);
+
+        return services;
     }
 
     private static IServiceCollection AddMessaging(this IServiceCollection services, IConfiguration configuration)
@@ -52,6 +60,9 @@ public static class DependencyInjection
         services.AddScoped<IIdempotencyStore, IdempotencyStore>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+        services.Configure<RetentionOptions>(configuration.GetSection(RetentionOptions.SectionName));
+        services.AddHostedService<RetentionCleaner>();
+
         return services;
     }
 
@@ -75,6 +86,7 @@ public static class DependencyInjection
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
         services.AddIdentityCore<ApplicationUser>(options =>
             {

@@ -30,51 +30,31 @@ public sealed class Ledger
         return cash;
     }
 
-    public Result<Transaction> Deposit(Account account, Money amount, DateTimeOffset occurredAt)
-    {
-        var validation = ValidateMovement(account, amount);
-        if (validation.IsFailure)
-        {
-            return Result.Failure<Transaction>(validation.Error);
-        }
+    public Result<Transaction> Deposit(Account account, Money amount, DateTimeOffset occurredAt) =>
+        Post(CashPolicy.Deposit(account, CashAccount(account.Currency), amount, occurredAt));
 
-        var cash = CashAccount(account.Currency);
-        return Post(Transaction.Create(
-            "Deposit",
-            occurredAt,
-            [
-                new EntrySpec(cash.Id, amount, EntryDirection.Debit),
-                new EntrySpec(account.Id, amount, EntryDirection.Credit),
-            ]));
-    }
-
-    public Result<Transaction> Withdraw(Account account, Money amount, DateTimeOffset occurredAt)
-    {
-        var validation = ValidateMovement(account, amount);
-        if (validation.IsFailure)
-        {
-            return Result.Failure<Transaction>(validation.Error);
-        }
-
-        var balance = GetBalance(account);
-        if (balance.Amount < amount.Amount)
-        {
-            return Result.Failure<Transaction>(LedgerErrors.InsufficientFunds);
-        }
-
-        var cash = CashAccount(account.Currency);
-        return Post(Transaction.Create(
-            "Withdrawal",
-            occurredAt,
-            [
-                new EntrySpec(account.Id, amount, EntryDirection.Debit),
-                new EntrySpec(cash.Id, amount, EntryDirection.Credit),
-            ]));
-    }
+    public Result<Transaction> Withdraw(Account account, Money amount, DateTimeOffset occurredAt) =>
+        Post(CashPolicy.Withdraw(account, CashAccount(account.Currency), GetBalance(account), amount, occurredAt));
 
     public Result<Transaction> Transfer(Account source, Account destination, Money amount, DateTimeOffset occurredAt) =>
         Post(TransferPolicy.Transfer(
             source, GetBalance(source), GetTransferredOnDay(source, occurredAt), destination, amount, occurredAt));
+
+    /// <summary>Posts the correcting counter-transaction for <paramref name="original"/>.</summary>
+    public Result<Transaction> Reverse(
+        Transaction original,
+        Account refundingAccount,
+        IReadOnlyCollection<Account> involvedAccounts,
+        DateTimeOffset occurredAt)
+    {
+        if (_transactions.Any(t => t.ReversesTransactionId == original.Id))
+        {
+            return Result.Failure<Transaction>(ReversalErrors.AlreadyReversed);
+        }
+
+        return Post(ReversalPolicy.Reverse(
+            original, refundingAccount.Id, GetBalance(refundingAccount), involvedAccounts, occurredAt));
+    }
 
     /// <summary>How much the account has already sent by transfer on the given UTC day.</summary>
     public Money GetTransferredOnDay(Account account, DateTimeOffset day)
@@ -125,26 +105,6 @@ public sealed class Ledger
         }
 
         return transaction;
-    }
-
-    private static Result ValidateMovement(Account account, Money amount)
-    {
-        if (account.IsClosed)
-        {
-            return Result.Failure(AccountErrors.Closed);
-        }
-
-        if (amount.Currency != account.Currency)
-        {
-            return Result.Failure(LedgerErrors.CurrencyMismatch);
-        }
-
-        if (amount.IsZero)
-        {
-            return Result.Failure(LedgerErrors.AmountMustBePositive);
-        }
-
-        return Result.Success();
     }
 }
 

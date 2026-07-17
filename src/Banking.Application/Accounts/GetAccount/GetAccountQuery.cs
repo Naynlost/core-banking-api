@@ -8,10 +8,12 @@ namespace Banking.Application.Accounts.GetAccount;
 /// </summary>
 public sealed record GetAccountQuery(Guid AccountId, string Requester) : IQuery<AccountResponse>;
 
+/// <summary>The balance is not stored anywhere; it is derived from the ledger on every read.</summary>
 public sealed record AccountResponse(
     Guid Id,
     string Currency,
     string Type,
     string Status,
     string KycStatus,
-    decimal DailyTransferLimit);
+    decimal DailyTransferLimit,
+    decimal Balance);

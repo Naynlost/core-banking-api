@@ -26,7 +26,15 @@ jobs:
       # Integration testleri Testcontainers ile gerçek PostgreSQL + RabbitMQ
       # konteynerleri kaldırır; GitHub'ın ubuntu runner'ında Docker hazırdır.
       - name: Test
-        run: dotnet test Banking.slnx -c Release --no-build
+        run: >
+          dotnet test Banking.slnx -c Release --no-build
+          --collect:"XPlat Code Coverage" --results-directory coverage
+
+      - name: Kod kapsam raporu (artefakt)
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage
+          path: coverage/**/coverage.cobertura.xml
 
       - name: Docker imajı
         run: docker build -t banking-api .

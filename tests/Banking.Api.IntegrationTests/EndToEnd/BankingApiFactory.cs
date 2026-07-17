@@ -10,7 +10,9 @@ namespace Banking.Api.IntegrationTests.EndToEnd;
 /// configuration BEFORE Program.cs runs; ConfigureAppConfiguration would be
 /// too late for values Program reads during startup.
 /// </summary>
-internal sealed class BankingApiFactory(IntegrationInfrastructure infrastructure) : WebApplicationFactory<Program>
+internal sealed class BankingApiFactory(
+    IntegrationInfrastructure infrastructure,
+    int authRateLimit = 1_000) : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -20,5 +22,8 @@ internal sealed class BankingApiFactory(IntegrationInfrastructure infrastructure
         builder.UseSetting("RabbitMq:UserName", IntegrationInfrastructure.RabbitMqUserName);
         builder.UseSetting("RabbitMq:Password", IntegrationInfrastructure.RabbitMqPassword);
         builder.UseSetting("Jwt:Secret", "e2e-test-secret-not-a-real-one-0123456789abcdef");
+        // Every test shares the loopback "IP"; a real per-IP budget would trip
+        // across unrelated scenarios, so it is loosened unless a test opts in.
+        builder.UseSetting("RateLimiting:AuthPermitLimit", authRateLimit.ToString());
     }
 }

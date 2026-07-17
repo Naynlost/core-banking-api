@@ -10,6 +10,45 @@ internal sealed class TransactionRepository(BankingDbContext context) : ITransac
     public async Task AddAsync(Transaction transaction, CancellationToken cancellationToken) =>
         await context.Transactions.AddAsync(transaction, cancellationToken);
 
+    public async Task<Transaction?> GetByIdAsync(TransactionId id, CancellationToken cancellationToken) =>
+        await context.Transactions
+            .Include(t => t.Entries)
+            .SingleOrDefaultAsync(t => t.Id == id, cancellationToken);
+
+    public async Task<bool> HasReversalAsync(TransactionId id, CancellationToken cancellationToken) =>
+        await context.Transactions.AnyAsync(t => t.ReversesTransactionId == id, cancellationToken);
+
+    public async Task<StatementPage> GetStatementAsync(
+        AccountId accountId, int skip, int take, CancellationToken cancellationToken)
+    {
+        var entries = context.LedgerEntries.Where(e => e.AccountId == accountId);
+        var totalCount = await entries.CountAsync(cancellationToken);
+
+        var lines = await entries
+            .Join(context.Transactions, e => e.TransactionId, t => t.Id, (e, t) => new { Entry = e, t.Description })
+            .OrderByDescending(x => x.Entry.OccurredAt)
+            .ThenByDescending(x => x.Entry.Id)
+            .Skip(skip)
+            .Take(take)
+            .Select(x => new
+            {
+                x.Entry.TransactionId,
+                x.Description,
+                x.Entry.Direction,
+                Amount = x.Entry.Amount.Amount,
+                Currency = x.Entry.Amount.Currency,
+                x.Entry.OccurredAt,
+            })
+            .ToListAsync(cancellationToken);
+
+        return new StatementPage(
+            lines
+                .Select(x => new StatementLine(
+                    x.TransactionId.Value, x.Description, x.Direction, x.Amount, x.Currency.Code, x.OccurredAt))
+                .ToList(),
+            totalCount);
+    }
+
     public async Task<IReadOnlyList<Transaction>> GetByAccountIdAsync(
         AccountId accountId,
         CancellationToken cancellationToken) =>

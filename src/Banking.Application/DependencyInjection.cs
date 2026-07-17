@@ -1,4 +1,5 @@
 using Banking.Application.Messaging;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Banking.Application;
@@ -6,8 +7,9 @@ namespace Banking.Application;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registers the dispatcher and every command/query handler in this assembly,
-    /// so adding a new use case never requires touching DI configuration.
+    /// Registers the dispatcher and every command/query handler and validator in
+    /// this assembly, so adding a new use case never requires touching DI
+    /// configuration.
     /// </summary>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
@@ -18,6 +20,7 @@ public static class DependencyInjection
             typeof(ICommandHandler<>),
             typeof(ICommandHandler<,>),
             typeof(IQueryHandler<,>),
+            typeof(IValidator<>),
         };
 
         var handlerRegistrations =

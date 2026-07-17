@@ -1,8 +1,12 @@
 using Banking.Api.Contracts;
 using Banking.Api.Extensions;
+using Banking.Application.Accounts.CloseAccount;
 using Banking.Application.Accounts.CompleteKyc;
 using Banking.Application.Accounts.CreateAccount;
 using Banking.Application.Accounts.GetAccount;
+using Banking.Application.Accounts.GetStatement;
+using Banking.Application.Accounts.ListAccounts;
+using Banking.Application.CashOperations;
 using Banking.Application.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +35,14 @@ public sealed class AccountsController(IDispatcher dispatcher) : ControllerBase
             new CreateAccountResponse(result.Value));
     }
 
+    [HttpGet]
+    public async Task<IActionResult> List(CancellationToken cancellationToken)
+    {
+        var result = await dispatcher.QueryAsync(new ListAccountsQuery(User.GetUserId()), cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value) : this.FailureProblem(result.Error);
+    }
+
     /// <summary>
     /// Marks the caller's account as KYC-verified. Stands in for a real
     /// verification flow; without it the account cannot send transfers.
@@ -49,5 +61,70 @@ public sealed class AccountsController(IDispatcher dispatcher) : ControllerBase
         var result = await dispatcher.QueryAsync(new GetAccountQuery(id, User.GetUserId()), cancellationToken);
 
         return result.IsSuccess ? Ok(result.Value) : this.FailureProblem(result.Error);
+    }
+
+    /// <summary>The account's ledger entries, newest first.</summary>
+    [HttpGet("{id:guid}/transactions")]
+    public async Task<IActionResult> GetStatement(
+        Guid id,
+        CancellationToken cancellationToken,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var result = await dispatcher.QueryAsync(
+            new GetAccountStatementQuery(id, User.GetUserId(), page, pageSize), cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value) : this.FailureProblem(result.Error);
+    }
+
+    [HttpPost("{id:guid}/deposits")]
+    public async Task<IActionResult> Deposit(
+        Guid id,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        CashOperationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new DepositMoneyCommand(
+            idempotencyKey?.Trim() ?? string.Empty,
+            User.GetUserId(),
+            id,
+            request.Amount,
+            request.CurrencyCode);
+
+        var result = await dispatcher.SendAsync(command, cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(new CashOperationResponse(result.Value))
+            : this.FailureProblem(result.Error);
+    }
+
+    [HttpPost("{id:guid}/withdrawals")]
+    public async Task<IActionResult> Withdraw(
+        Guid id,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        CashOperationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new WithdrawMoneyCommand(
+            idempotencyKey?.Trim() ?? string.Empty,
+            User.GetUserId(),
+            id,
+            request.Amount,
+            request.CurrencyCode);
+
+        var result = await dispatcher.SendAsync(command, cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(new CashOperationResponse(result.Value))
+            : this.FailureProblem(result.Error);
+    }
+
+    /// <summary>Closes the account; only possible once its balance is zero.</summary>
+    [HttpPost("{id:guid}/close")]
+    public async Task<IActionResult> Close(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await dispatcher.SendAsync(new CloseAccountCommand(id, User.GetUserId()), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : this.FailureProblem(result.Error);
     }
 }

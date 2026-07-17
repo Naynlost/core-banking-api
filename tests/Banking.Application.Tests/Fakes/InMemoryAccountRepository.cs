@@ -1,6 +1,7 @@
 using Banking.Application.Abstractions;
 using Banking.Domain.Accounts;
 using Banking.Domain.Ledgers;
+using Banking.Domain.ValueObjects;
 
 namespace Banking.Application.Tests.Fakes;
 
@@ -12,6 +13,13 @@ internal sealed class InMemoryAccountRepository : IAccountRepository
 
     public Task<Account?> GetByIdAsync(AccountId id, CancellationToken cancellationToken) =>
         Task.FromResult(_accounts.GetValueOrDefault(id));
+
+    public Task<IReadOnlyList<Account>> GetByOwnerAsync(string owner, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<Account>>(_accounts.Values.Where(a => a.Owner == owner).ToList());
+
+    public Task<Account?> GetCashAccountAsync(Currency currency, CancellationToken cancellationToken) =>
+        Task.FromResult(_accounts.Values.FirstOrDefault(a =>
+            a.Owner == Account.SystemOwner && a.Type == AccountType.Asset && a.Currency == currency));
 
     public Task AddAsync(Account account, CancellationToken cancellationToken)
     {
@@ -36,6 +44,36 @@ internal sealed class InMemoryTransactionRepository : ITransactionRepository
     {
         Added.Add(transaction);
         return Task.CompletedTask;
+    }
+
+    public Task<Transaction?> GetByIdAsync(TransactionId id, CancellationToken cancellationToken) =>
+        Task.FromResult(Added.FirstOrDefault(t => t.Id == id));
+
+    public Task<bool> HasReversalAsync(TransactionId id, CancellationToken cancellationToken) =>
+        Task.FromResult(Added.Any(t => t.ReversesTransactionId == id));
+
+    public Task<StatementPage> GetStatementAsync(
+        AccountId accountId, int skip, int take, CancellationToken cancellationToken)
+    {
+        var lines = Added
+            .SelectMany(t => t.Entries.Select(e => (Transaction: t, Entry: e)))
+            .Where(x => x.Entry.AccountId == accountId)
+            .OrderByDescending(x => x.Entry.OccurredAt)
+            .ToList();
+
+        return Task.FromResult(new StatementPage(
+            lines
+                .Skip(skip)
+                .Take(take)
+                .Select(x => new StatementLine(
+                    x.Transaction.Id.Value,
+                    x.Transaction.Description,
+                    x.Entry.Direction,
+                    x.Entry.Amount.Amount,
+                    x.Entry.Amount.Currency.Code,
+                    x.Entry.OccurredAt))
+                .ToList(),
+            lines.Count));
     }
 
     public Task<IReadOnlyList<Transaction>> GetByAccountIdAsync(
