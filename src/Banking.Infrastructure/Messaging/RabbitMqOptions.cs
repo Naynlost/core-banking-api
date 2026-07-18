@@ -11,4 +11,9 @@ public sealed class RabbitMqOptions
     public string UserName { get; init; } = string.Empty;
 
     public string Password { get; init; } = string.Empty;
+
+    public string VirtualHost { get; init; } = "/";
+
+    /// <summary>AMQPS (TLS) — required by managed brokers like CloudAMQP; off for local Docker.</summary>
+    public bool UseTls { get; init; }
 }

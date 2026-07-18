@@ -15,8 +15,10 @@ tek bir kolonda tutulmaz; tüm finansal hareketler çift taraflı muhasebe defte
   çevrilmiş dengeleyici bir işlem ekler. Bir işlem en fazla bir kez ters çevrilebilir
   (unique index ile garanti).
 - **Para modeli:** Tutarlar `decimal` tabanlı `Money` value object'i ile temsil edilir;
-  para birimi uyuşmazlıkları derleme ve çalışma zamanında engellenir. Bakiye hiçbir yerde
-  saklanmaz; her okumada defterden türetilir ve API'den (`GET /api/accounts/{id}`) okunur.
+  para birimi uyuşmazlıkları derleme ve çalışma zamanında engellenir. Bakiyenin kaynağı
+  her zaman defterdir; okuma tarafında `account_balances` **projeksiyonu** kullanılır —
+  defter yazımıyla AYNI veritabanı transaction'ında güncellenen, tamamen türetilmiş ve
+  defterden her an yeniden inşa edilebilir bir read model (okuma `SUM` yerine O(1)).
 - **Hesap yaşam döngüsü:** hesap açma, para yatırma/çekme (`/deposits`, `/withdrawals` —
   kasa hesabına karşı çift taraflı kayıt), sayfalı ekstre (`GET /api/accounts/{id}/transactions`),
   bakiye sıfırken kapatma (`POST /api/accounts/{id}/close`).
@@ -43,6 +45,16 @@ tek bir kolonda tutulmaz; tüm finansal hareketler çift taraflı muhasebe defte
 - **Risk kontrolleri:** Hesap başına günlük transfer limiti, KYC durumu (doğrulanmamış
   hesaplar transfer gönderemez) ve kural tabanlı fraud taraması (eşik üstü tutar, kısa
   sürede çok sayıda transfer). Şüpheli işlemler `fraud_alerts` tablosuna işlenir.
+- **Fraud inceleme akışı:** İşaretlenen işlemler back-office endpoint'lerinden yönetilir:
+  `GET /api/fraud-alerts` (durum filtresi + sayfalama) ve
+  `POST /api/fraud-alerts/{id}/resolve` (Confirmed/Dismissed + not). Bu uçlar müşteri
+  değil **rol** korumalıdır (`fraud-reviewer` JWT rolü); bir uyarı tam bir kez karara
+  bağlanır, karar sonradan değiştirilemez.
+- **Düzenli transfer (standing order):** "Her ay A'dan B'ye X gönder" talimatı
+  (`POST/GET /api/standing-orders`, `/cancel`). Vadesi gelen talimatları bir background
+  service normal transfer olarak yürütür; her tekrar **deterministik idempotency key**
+  taşıdığından executor çökse ve aynı tekrarı yeniden işlese bile para iki kez çıkmaz.
+  Başarısız tekrar (yetersiz bakiye vb.) talimat üzerinde görünür kalır, plan ilerler.
 - **Gözlemlenebilirlik:** Serilog ile yapılandırılmış loglama ve istek başına correlation id
   (kuyruk üzerinden consumer loglarına kadar taşınır), OpenTelemetry ile uçtan uca tracing
   (HTTP isteği → handler → veritabanı → kuyruk → consumer tek trace altında), Prometheus
@@ -81,6 +93,10 @@ POST /api/transfers (Idempotency-Key)
   → TransferNotificationConsumer (bildirim)
   → FraudScreeningConsumer (kural değerlendirmesi → fraud_alerts)
 ```
+
+Önemli mimari kararlar ve gerekçeleri (neden double-entry, neden kendi CQRS
+dispatcher'ımız, neden outbox, optimistic vs. pessimistic locking vb.)
+[docs/adr](docs/adr/README.md) altında ADR formatında belgelenmiştir.
 
 ## Kurulum ve çalıştırma
 
@@ -146,26 +162,57 @@ Docker imajı:
 docker build -t banking-api .
 ```
 
+Ücretsiz katmanlarda (Render + Neon + CloudAMQP) canlı demo yayınlamak için
+[docs/deploy.md](docs/deploy.md) adımlarını izleyin.
+
 ## Testler
 
 ```bash
 dotnet test
 ```
 
-Test paketi üç katmandan oluşur (137 test):
+Test paketi dört katmandan oluşur (173 test):
 
 - **Domain birim testleri:** Defter kuralları — dengeli kayıt, yetersiz bakiye, kapalı hesap,
-  para birimi uyuşmazlığı, günlük limit, KYC, fraud kuralları ve ters kayıt (reversal)
-  politikası.
+  para birimi uyuşmazlığı, günlük limit, KYC, fraud kuralları ve çözümleme yaşam döngüsü,
+  standing order zamanlaması ve ters kayıt (reversal) politikası.
 - **Application testleri:** Handler davranışları — idempotency replay, çakışmada yeniden
-  deneme, outbox'a olay kuyruklanması, yatırma/çekme, hesap kapatma, reversal ve
-  dispatcher'ın validation pipeline'ı.
+  deneme, outbox'a olay kuyruklanması, yatırma/çekme, hesap kapatma, reversal, fraud
+  inceleme, standing order sahiplik kuralları ve dispatcher'ın validation pipeline'ı.
+- **Mimari testleri:** NetArchTest ile Clean Architecture bağımlılık kuralları derleme
+  sonrası doğrulanır — Domain hiçbir dış pakete referans veremez, Application
+  Infrastructure/EF Core/ASP.NET Core göremez, controller'lar use case katmanını atlayamaz.
+  Yanlış yönde eklenen bir referans CI'da testi kırar.
 - **Integration ve uçtan uca testler:** Testcontainers her koşuda geçici PostgreSQL 17 ve
   RabbitMQ 4 konteynerleri başlatır; Docker dışında önkoşul yoktur ve CI'da aynı şekilde
   çalışır. Gerçek veritabanında idempotency, paralel transferlerde bakiye tutarlılığı,
   outbox'ın uygulama yeniden başlatmasına dayanıklılığı, poison mesajın dead-letter
-  kuyruğuna düşmesi, retention temizliği, refresh token rotation'ı, rate limiting ve
-  kayıt → giriş → yatır → transfer → ters kayıt → kapatma akışlarının tamamı doğrulanır.
+  kuyruğuna düşmesi, retention temizliği, refresh token rotation'ı, rate limiting,
+  fraud inceleme döngüsü (işaretle → listele → karara bağla), standing order'ın
+  crash-and-rerun altında tam bir kez yürümesi, bakiye projeksiyonunun defterle birebir
+  eşleşmesi ve kayıt → giriş → yatır → transfer → ters kayıt → kapatma akışlarının
+  tamamı doğrulanır.
+
+## Performans
+
+`loadtest/transfer-load.js` k6 senaryosu, 10 sanal kullanıcıyla 30 saniye boyunca
+transfer endpoint'ini yükler (her kullanıcının kendi fonlanmış hesap çifti vardır) ve
+sonunda **para korunumunu** doğrular. Yerel ölçüm (Release build, tam pipeline:
+idempotency kaydı + optimistic locking + outbox + RabbitMQ tüketicileri açık):
+
+| Metrik | Değer |
+|---|---|
+| Transfer sayısı (30 sn) | 6.148 |
+| Ortalama hız | ~205 istek/sn |
+| Gecikme p50 / p95 / maks | 37 ms / 108 ms / 322 ms |
+| Hata oranı | %0 |
+| Para korunumu | Tüm hesap çiftlerinde doğrulandı |
+
+Çalıştırmak için (API 5000 portunda ayaktayken):
+
+```bash
+docker run --rm -i --add-host=host.docker.internal:host-gateway grafana/k6 run - < loadtest/transfer-load.js
+```
 
 ## Teknolojiler
 
@@ -177,7 +224,8 @@ Test paketi üç katmandan oluşur (137 test):
 | Doğrulama | FluentValidation |
 | Kimlik doğrulama | ASP.NET Core Identity, JWT Bearer (+ refresh token rotation) |
 | Loglama / izleme | Serilog, OpenTelemetry, Prometheus, Grafana, Jaeger |
-| Test | xUnit, Shouldly, Testcontainers |
+| Test | xUnit, Shouldly, Testcontainers, NetArchTest |
+| Yük testi | k6 |
 | API dokümantasyonu | OpenAPI, Scalar |
 | CI | GitHub Actions |
 
@@ -193,7 +241,10 @@ Test paketi üç katmandan oluşur (137 test):
 ├── tests/
 │   ├── Banking.Domain.Tests
 │   ├── Banking.Application.Tests
+│   ├── Banking.ArchitectureTests    # bağımlılık kuralları (NetArchTest)
 │   └── Banking.Api.IntegrationTests
+├── docs/adr/                    # mimari karar kayıtları
+├── loadtest/                    # k6 yük testi senaryosu
 ├── observability/               # Prometheus ve Grafana yapılandırmaları
 ├── docker-compose.yml
 └── Dockerfile

@@ -1,9 +1,72 @@
 using Banking.Application.Abstractions;
 using Banking.Domain.Accounts;
+using Banking.Domain.Fraud;
 using Banking.Domain.Ledgers;
+using Banking.Domain.StandingOrders;
 using Banking.Domain.ValueObjects;
 
 namespace Banking.Application.Tests.Fakes;
+
+internal sealed class InMemoryBalanceProjection : IBalanceProjection
+{
+    private readonly Dictionary<AccountId, EntryTotals> _totals = [];
+
+    public void SetTotals(AccountId accountId, decimal debits, decimal credits) =>
+        _totals[accountId] = new EntryTotals(debits, credits);
+
+    public Task<EntryTotals> GetTotalsAsync(AccountId accountId, CancellationToken cancellationToken) =>
+        Task.FromResult(_totals.GetValueOrDefault(accountId));
+}
+
+internal sealed class InMemoryStandingOrderRepository : IStandingOrderRepository
+{
+    private readonly List<StandingOrder> _orders = [];
+
+    public IReadOnlyList<StandingOrder> Orders => _orders;
+
+    public Task AddAsync(StandingOrder order, CancellationToken cancellationToken)
+    {
+        _orders.Add(order);
+        return Task.CompletedTask;
+    }
+
+    public Task<StandingOrder?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        Task.FromResult(_orders.FirstOrDefault(order => order.Id == id));
+
+    public Task<IReadOnlyList<StandingOrder>> GetByOwnerAsync(string owner, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<StandingOrder>>(_orders.Where(order => order.Owner == owner).ToList());
+
+    public Task<IReadOnlyList<StandingOrder>> GetDueAsync(
+        DateTimeOffset now, int take, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<StandingOrder>>(_orders
+            .Where(order => order.IsActive && order.NextRunAt <= now)
+            .OrderBy(order => order.NextRunAt)
+            .Take(take)
+            .ToList());
+}
+
+internal sealed class InMemoryFraudAlertRepository : IFraudAlertRepository
+{
+    private readonly List<FraudAlert> _alerts = [];
+
+    public void Seed(FraudAlert alert) => _alerts.Add(alert);
+
+    public Task<FraudAlertPage> ListAsync(
+        FraudAlertStatus? status, int skip, int take, CancellationToken cancellationToken)
+    {
+        var filtered = _alerts
+            .Where(alert => status is null || alert.Status == status)
+            .OrderByDescending(alert => alert.FlaggedAt)
+            .ThenBy(alert => alert.Id)
+            .ToList();
+
+        return Task.FromResult(new FraudAlertPage(
+            filtered.Skip(skip).Take(take).ToList(), filtered.Count));
+    }
+
+    public Task<FraudAlert?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        Task.FromResult(_alerts.FirstOrDefault(alert => alert.Id == id));
+}
 
 internal sealed class InMemoryAccountRepository : IAccountRepository
 {

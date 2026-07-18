@@ -13,7 +13,10 @@ public interface IJwtTokenGenerator
     AuthToken CreateToken(ApplicationUser user);
 }
 
-internal sealed class JwtTokenGenerator(IOptions<JwtOptions> options, TimeProvider timeProvider) : IJwtTokenGenerator
+internal sealed class JwtTokenGenerator(
+    IOptions<JwtOptions> options,
+    IOptions<FraudReviewOptions> fraudReview,
+    TimeProvider timeProvider) : IJwtTokenGenerator
 {
     public AuthToken CreateToken(ApplicationUser user)
     {
@@ -31,6 +34,11 @@ internal sealed class JwtTokenGenerator(IOptions<JwtOptions> options, TimeProvid
             new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
+
+        if (fraudReview.Value.ReviewerEmails.Contains(user.Email ?? string.Empty, StringComparer.OrdinalIgnoreCase))
+        {
+            claims.Add(new Claim(ClaimTypes.Role, Banking.Application.Fraud.FraudReview.ReviewerRole));
+        }
 
         var token = new JwtSecurityToken(
             issuer: jwt.Issuer,

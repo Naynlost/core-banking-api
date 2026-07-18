@@ -31,7 +31,13 @@ internal sealed class RabbitMqConnectionProvider(IOptions<RabbitMqOptions> optio
                     Port = options.Value.Port,
                     UserName = options.Value.UserName,
                     Password = options.Value.Password,
+                    VirtualHost = options.Value.VirtualHost,
                 };
+
+                if (options.Value.UseTls)
+                {
+                    factory.Ssl = new SslOption { Enabled = true, ServerName = options.Value.HostName };
+                }
 
                 _connection = await factory.CreateConnectionAsync(cancellationToken);
             }

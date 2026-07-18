@@ -57,11 +57,17 @@ public static class DependencyInjection
 
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
+        services.AddScoped<IFraudAlertRepository, FraudAlertRepository>();
+        services.AddScoped<IStandingOrderRepository, StandingOrderRepository>();
+        services.AddScoped<IBalanceProjection, BalanceProjection>();
         services.AddScoped<IIdempotencyStore, IdempotencyStore>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         services.Configure<RetentionOptions>(configuration.GetSection(RetentionOptions.SectionName));
         services.AddHostedService<RetentionCleaner>();
+
+        services.Configure<StandingOrderOptions>(configuration.GetSection(StandingOrderOptions.SectionName));
+        services.AddHostedService<StandingOrderExecutor>();
 
         return services;
     }
@@ -84,6 +90,7 @@ public static class DependencyInjection
         }
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<FraudReviewOptions>(configuration.GetSection(FraudReviewOptions.SectionName));
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();

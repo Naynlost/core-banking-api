@@ -12,10 +12,16 @@ namespace Banking.Api.IntegrationTests.EndToEnd;
 /// </summary>
 internal sealed class BankingApiFactory(
     IntegrationInfrastructure infrastructure,
-    int authRateLimit = 1_000) : WebApplicationFactory<Program>
+    int authRateLimit = 1_000,
+    IReadOnlyDictionary<string, string>? extraSettings = null) : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        foreach (var (key, value) in extraSettings ?? new Dictionary<string, string>())
+        {
+            builder.UseSetting(key, value);
+        }
+
         builder.UseSetting("ConnectionStrings:BankingDb", infrastructure.PostgresConnectionString);
         builder.UseSetting("RabbitMq:HostName", infrastructure.RabbitMqHost);
         builder.UseSetting("RabbitMq:Port", infrastructure.RabbitMqPort.ToString());

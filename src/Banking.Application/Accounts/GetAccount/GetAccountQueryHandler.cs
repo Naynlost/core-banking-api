@@ -8,7 +8,7 @@ namespace Banking.Application.Accounts.GetAccount;
 
 internal sealed class GetAccountQueryHandler(
     IAccountRepository accounts,
-    ITransactionRepository transactions) : IQueryHandler<GetAccountQuery, AccountResponse>
+    IBalanceProjection balances) : IQueryHandler<GetAccountQuery, AccountResponse>
 {
     public async Task<Result<AccountResponse>> HandleAsync(GetAccountQuery query, CancellationToken cancellationToken)
     {
@@ -19,16 +19,16 @@ internal sealed class GetAccountQueryHandler(
             return Result.Failure<AccountResponse>(AccountApplicationErrors.NotFound);
         }
 
-        return Result.Success(await AccountResponses.FromAsync(account, transactions, cancellationToken));
+        return Result.Success(await AccountResponses.FromAsync(account, balances, cancellationToken));
     }
 }
 
 internal static class AccountResponses
 {
     public static async Task<AccountResponse> FromAsync(
-        Account account, ITransactionRepository transactions, CancellationToken cancellationToken)
+        Account account, IBalanceProjection balances, CancellationToken cancellationToken)
     {
-        var totals = await transactions.GetEntryTotalsAsync(account.Id, cancellationToken);
+        var totals = await balances.GetTotalsAsync(account.Id, cancellationToken);
         var balance = LedgerMath.Balance(account, totals.Debits, totals.Credits);
 
         return new AccountResponse(

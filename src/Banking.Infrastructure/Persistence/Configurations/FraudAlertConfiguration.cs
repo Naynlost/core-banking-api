@@ -26,9 +26,21 @@ internal sealed class FraudAlertConfiguration : IEntityTypeConfiguration<FraudAl
 
         builder.Property(a => a.FlaggedAt);
 
+        builder.Property(a => a.Status)
+            .HasConversion<string>()
+            .HasMaxLength(16);
+
+        builder.Property(a => a.ResolvedAt);
+
+        builder.Property(a => a.ResolutionNote)
+            .HasMaxLength(500);
+
         // At-least-once delivery may screen the same transfer twice; one alert
         // per (transaction, rule) keeps redeliveries from piling up duplicates.
         builder.HasIndex(a => new { a.TransactionId, a.Rule })
             .IsUnique();
+
+        // Reviewers work off the open queue; the status filter is indexed for it.
+        builder.HasIndex(a => a.Status);
     }
 }
