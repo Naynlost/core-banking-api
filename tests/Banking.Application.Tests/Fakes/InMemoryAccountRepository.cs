@@ -2,6 +2,7 @@ using Banking.Application.Abstractions;
 using Banking.Domain.Accounts;
 using Banking.Domain.Fraud;
 using Banking.Domain.Ledgers;
+using Banking.Domain.Primitives;
 using Banking.Domain.StandingOrders;
 using Banking.Domain.ValueObjects;
 
@@ -83,6 +84,10 @@ internal sealed class InMemoryAccountRepository : IAccountRepository
     public Task<Account?> GetCashAccountAsync(Currency currency, CancellationToken cancellationToken) =>
         Task.FromResult(_accounts.Values.FirstOrDefault(a =>
             a.Owner == Account.SystemOwner && a.Type == AccountType.Asset && a.Currency == currency));
+
+    public Task<Account?> GetFxPositionAccountAsync(Currency currency, CancellationToken cancellationToken) =>
+        Task.FromResult(_accounts.Values.FirstOrDefault(a =>
+            a.Owner == Account.SystemOwner && a.Type == AccountType.FxPosition && a.Currency == currency));
 
     public Task AddAsync(Account account, CancellationToken cancellationToken)
     {
@@ -187,6 +192,16 @@ internal sealed class StagingIdempotencyStore : IIdempotencyStore
     }
 
     public void DiscardPending() => _pending.Clear();
+}
+
+// Sabit kur döndürür; bilinmeyen çift için gerçek sağlayıcı gibi hata verir
+internal sealed class FakeExchangeRateProvider(Currency from, Currency to, decimal rate) : IExchangeRateProvider
+{
+    public Task<Result<ExchangeRate>> GetRateAsync(
+        Currency requestedFrom, Currency requestedTo, CancellationToken cancellationToken) =>
+        Task.FromResult(requestedFrom == from && requestedTo == to
+            ? ExchangeRate.Create(from, to, rate)
+            : Result.Failure<ExchangeRate>(ExchangeRateErrors.RateNotAvailable));
 }
 
 internal sealed class InMemoryOutbox : IOutbox

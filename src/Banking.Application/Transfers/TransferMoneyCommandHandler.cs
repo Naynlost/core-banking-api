@@ -74,13 +74,28 @@ internal sealed class TransferMoneyCommandHandler(
         var transferredToday = await transactions.GetTransferredTotalAsync(
             source.Id, startOfDay, startOfDay.AddDays(1), cancellationToken);
 
+        // Hesaplar farklı para birimindeyse işlemin ikinci bacağı için kur ve banka
+        // pozisyonları gerekir; aynı para biriminde bu adım hiç çalışmaz.
+        FxContext? fx = null;
+        if (source.Currency != destination.Currency)
+        {
+            var fxContext = await BuildFxContextAsync(services, source, destination, amount.Value, cancellationToken);
+            if (fxContext.IsFailure)
+            {
+                return Result.Failure<Guid>(fxContext.Error);
+            }
+
+            fx = fxContext.Value;
+        }
+
         var transfer = TransferPolicy.Transfer(
             source,
             sourceBalance,
             Money.Create(transferredToday, source.Currency).Value,
             destination,
             amount.Value,
-            now);
+            now,
+            fx);
         if (transfer.IsFailure)
         {
             return Result.Failure<Guid>(transfer.Error);
@@ -88,6 +103,12 @@ internal sealed class TransferMoneyCommandHandler(
 
         source.RecordMovement();
         destination.RecordMovement();
+        if (fx is not null)
+        {
+            fx.SourcePosition.RecordMovement();
+            fx.DestinationPosition.RecordMovement();
+        }
+
         await transactions.AddAsync(transfer.Value, cancellationToken);
         await outbox.EnqueueAsync(
             new MoneyTransferred(
@@ -104,5 +125,52 @@ internal sealed class TransferMoneyCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success(transfer.Value.Id.Value);
+    }
+
+    // Gönderilen tutarı hedef para birimine çevirir ve bankanın iki pozisyon hesabını hazırlar.
+    // Gönderilen birimin pozisyonu yalnızca alacaklandığı için ilk kullanımda açılabilir;
+    // alınan birimin pozisyonu borçlanacağından yoksa stok da yok demektir ve transfer reddedilir.
+    private static async Task<Result<FxContext>> BuildFxContextAsync(
+        IServiceProvider services,
+        Account source,
+        Account destination,
+        Money amount,
+        CancellationToken cancellationToken)
+    {
+        var accounts = services.GetRequiredService<IAccountRepository>();
+        var transactions = services.GetRequiredService<ITransactionRepository>();
+        var rates = services.GetRequiredService<IExchangeRateProvider>();
+
+        var rate = await rates.GetRateAsync(source.Currency, destination.Currency, cancellationToken);
+        if (rate.IsFailure)
+        {
+            return Result.Failure<FxContext>(rate.Error);
+        }
+
+        var converted = rate.Value.Convert(amount);
+        if (converted.IsFailure)
+        {
+            return Result.Failure<FxContext>(converted.Error);
+        }
+
+        var sourcePosition = await accounts.GetFxPositionAccountAsync(source.Currency, cancellationToken);
+        if (sourcePosition is null)
+        {
+            sourcePosition = Account.OpenFxPosition(source.Currency);
+            await accounts.AddAsync(sourcePosition, cancellationToken);
+        }
+
+        var destinationPosition = await accounts.GetFxPositionAccountAsync(destination.Currency, cancellationToken);
+        if (destinationPosition is null)
+        {
+            return Result.Failure<FxContext>(LedgerErrors.InsufficientFxLiquidity);
+        }
+
+        var positionTotals = await transactions.GetEntryTotalsAsync(destinationPosition.Id, cancellationToken);
+        var positionBalance = LedgerMath.Balance(
+            destinationPosition, positionTotals.Debits, positionTotals.Credits);
+
+        return Result.Success(
+            new FxContext(converted.Value, sourcePosition, destinationPosition, positionBalance));
     }
 }

@@ -12,5 +12,8 @@ public interface IAccountRepository
 
     Task<Account?> GetCashAccountAsync(Currency currency, CancellationToken cancellationToken);
 
+    // Bankanın o para birimindeki döviz pozisyonu; hiç kullanılmamışsa null
+    Task<Account?> GetFxPositionAccountAsync(Currency currency, CancellationToken cancellationToken);
+
     Task AddAsync(Account account, CancellationToken cancellationToken);
 }

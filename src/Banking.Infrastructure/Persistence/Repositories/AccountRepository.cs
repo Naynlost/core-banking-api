@@ -25,6 +25,14 @@ internal sealed class AccountRepository(BankingDbContext context) : IAccountRepo
             .OrderBy(a => a.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<Account?> GetFxPositionAccountAsync(Currency currency, CancellationToken cancellationToken) =>
+        await context.Accounts
+            .Where(a => a.Owner == Account.SystemOwner
+                && a.Type == AccountType.FxPosition
+                && a.Currency == currency)
+            .OrderBy(a => a.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public async Task AddAsync(Account account, CancellationToken cancellationToken) =>
         await context.Accounts.AddAsync(account, cancellationToken);
 }

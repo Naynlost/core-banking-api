@@ -53,9 +53,10 @@ public sealed class Transaction
             return Result.Failure<Transaction>(TransactionErrors.AtLeastTwoEntries);
         }
 
-        var currency = entries.First().Amount.Currency;
-        decimal totalDebit = 0;
-        decimal totalCredit = 0;
+        // Denge para birimi BAŞINA aranır. Farklı birimler toplanamayacağı için çapraz kur
+        // işlemi tek bir toplamda dengelenemez; her birim kendi içinde sıfırlanmalıdır.
+        // Tek para birimli işlem bunun özel hâlidir.
+        var netByCurrency = new Dictionary<Currency, decimal>();
 
         foreach (var entry in entries)
         {
@@ -64,22 +65,15 @@ public sealed class Transaction
                 return Result.Failure<Transaction>(TransactionErrors.EntryAmountMustBePositive);
             }
 
-            if (entry.Amount.Currency != currency)
-            {
-                return Result.Failure<Transaction>(TransactionErrors.MixedCurrencies);
-            }
+            var signed = entry.Direction == EntryDirection.Debit
+                ? entry.Amount.Amount
+                : -entry.Amount.Amount;
 
-            if (entry.Direction == EntryDirection.Debit)
-            {
-                totalDebit += entry.Amount.Amount;
-            }
-            else
-            {
-                totalCredit += entry.Amount.Amount;
-            }
+            netByCurrency[entry.Amount.Currency] =
+                netByCurrency.GetValueOrDefault(entry.Amount.Currency) + signed;
         }
 
-        if (totalDebit != totalCredit)
+        if (netByCurrency.Values.Any(net => net != 0))
         {
             return Result.Failure<Transaction>(TransactionErrors.Unbalanced);
         }
@@ -97,6 +91,5 @@ public static class TransactionErrors
 {
     public const string AtLeastTwoEntries = "transaction.at_least_two_entries";
     public const string EntryAmountMustBePositive = "transaction.entry_amount_must_be_positive";
-    public const string MixedCurrencies = "transaction.mixed_currencies";
     public const string Unbalanced = "transaction.unbalanced";
 }

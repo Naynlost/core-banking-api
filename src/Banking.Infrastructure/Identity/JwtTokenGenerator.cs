@@ -16,6 +16,7 @@ public interface IJwtTokenGenerator
 internal sealed class JwtTokenGenerator(
     IOptions<JwtOptions> options,
     IOptions<FraudReviewOptions> fraudReview,
+    IOptions<TreasuryOptions> treasury,
     TimeProvider timeProvider) : IJwtTokenGenerator
 {
     public AuthToken CreateToken(ApplicationUser user)
@@ -38,6 +39,11 @@ internal sealed class JwtTokenGenerator(
         if (fraudReview.Value.ReviewerEmails.Contains(user.Email ?? string.Empty, StringComparer.OrdinalIgnoreCase))
         {
             claims.Add(new Claim(ClaimTypes.Role, Banking.Application.Fraud.FraudReview.ReviewerRole));
+        }
+
+        if (treasury.Value.OperatorEmails.Contains(user.Email ?? string.Empty, StringComparer.OrdinalIgnoreCase))
+        {
+            claims.Add(new Claim(ClaimTypes.Role, Banking.Application.Fx.FxTreasury.OperatorRole));
         }
 
         var token = new JwtSecurityToken(

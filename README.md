@@ -19,6 +19,17 @@ tek bir kolonda tutulmaz; tüm finansal hareketler çift taraflı muhasebe defte
   her zaman defterdir; okuma tarafında `account_balances` **projeksiyonu** kullanılır —
   defter yazımıyla AYNI veritabanı transaction'ında güncellenen, tamamen türetilmiş ve
   defterden her an yeniden inşa edilebilir bir read model (okuma `SUM` yerine O(1)).
+- **Çoklu para birimi ve çapraz kur transferi:** Farklı para birimindeki hesaplar arasında
+  transfer yapılabilir. Bunun için defterin değişmezi "toplam denge"den **"her para
+  biriminde ayrı denge"**ye çevrildi: çapraz kur işlemi dört satır üretir ve arada bankanın
+  **FX pozisyon hesapları** durur (TRY bacağı ve USD bacağı kendi içlerinde sıfırlanır).
+  Böylece hiçbir para biriminde para yoktan var olmaz. Banka ancak elindeki dövizi
+  satabilir; stok yetmezse transfer `ledger.insufficient_fx_liquidity` ile reddedilir.
+  Stok yükleme hazine rolüne (`treasury`) açık ayrı bir uçtur. Kurlar
+  `IExchangeRateProvider` arkasındadır (bugün yapılandırmadan okunur), çevrim ve
+  bankacılık yuvarlaması `ExchangeRate` value object'inde toplanır.
+  `GET /api/fx/quote` transfer öncesi kuru ve hesaplanacak tutarı gösterir.
+  Ayrıntılı gerekçe: [ADR 0010](docs/adr/0010-multi-currency-fx.md).
 - **Hesap yaşam döngüsü:** hesap açma, para yatırma/çekme (`/deposits`, `/withdrawals` —
   kasa hesabına karşı çift taraflı kayıt), sayfalı ekstre (`GET /api/accounts/{id}/transactions`),
   bakiye sıfırken kapatma (`POST /api/accounts/{id}/close`).
@@ -165,6 +176,19 @@ curl -X POST localhost:5000/api/transfers -H "Authorization: Bearer $TOKEN" \
 curl "localhost:5000/api/accounts/<HESAP_ID>/transactions?page=1&pageSize=20" \
   -H "Authorization: Bearer $TOKEN"
 curl -X POST localhost:5000/api/transactions/<ISLEM_ID>/reversal -H "Authorization: Bearer $ALICI_TOKEN"
+
+# Çapraz kur: önce kuru gör, sonra farklı para birimindeki hesaba gönder
+curl "localhost:5000/api/fx/quote?from=TRY&to=USD&amount=2000" -H "Authorization: Bearer $TOKEN"
+
+# Banka stoğunu yüklemek hazine rolü ister (Treasury:OperatorEmails listesindeki kullanıcı)
+curl -X POST localhost:5000/api/fx/positions -H "Authorization: Bearer $HAZINE_TOKEN" \
+  -H "Content-Type: application/json" -H "Idempotency-Key: stok-1" \
+  -d '{"amount":1000,"currencyCode":"USD"}'
+
+# Artık TRY hesabından USD hesabına transfer edilebilir (tutar gönderenin para biriminde)
+curl -X POST localhost:5000/api/transfers -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" -H "Idempotency-Key: capraz-1" \
+  -d '{"sourceAccountId":"<TRY_HESAP>","destinationAccountId":"<USD_HESAP>","amount":2000,"currencyCode":"TRY"}'
 ```
 
 Docker imajı:
@@ -182,7 +206,7 @@ docker build -t banking-api .
 dotnet test
 ```
 
-Test paketi dört katmandan oluşur (178 test):
+Test paketi dört katmandan oluşur (204 test):
 
 - **Domain birim testleri:** Defter kuralları — dengeli kayıt, yetersiz bakiye, kapalı hesap,
   para birimi uyuşmazlığı, günlük limit, KYC, fraud kuralları ve çözümleme yaşam döngüsü,
@@ -202,9 +226,12 @@ Test paketi dört katmandan oluşur (178 test):
   fraud inceleme döngüsü (işaretle → listele → karara bağla), standing order'ın
   crash-and-rerun altında tam bir kez yürümesi, bakiye projeksiyonunun defterle birebir
   eşleşmesi ve kayıt → giriş → yatır → transfer → ters kayıt → kapatma akışlarının
-  tamamı doğrulanır. Ayrıca veritabanı hatalarının doğru sınıflandırıldığı
-  (deadlock ve serialization hatası → yeniden denenebilir çakışma; gerçek hatalar
-  olduğu gibi yukarı çıkar) ayrı ayrı test edilir.
+  tamamı doğrulanır. Çapraz kur tarafında gerçek veritabanında dört satırlı işlemin her
+  para biriminde dengelendiği, banka stoğu yetmediğinde transferin reddedildiği ve kur
+  sorgusu → stok yükleme (rol korumalı) → çapraz kur transferi akışının uçtan uca çalıştığı
+  doğrulanır. Ayrıca veritabanı hatalarının doğru sınıflandırıldığı (deadlock ve
+  serialization hatası → yeniden denenebilir çakışma; gerçek hatalar olduğu gibi
+  yukarı çıkar) ayrı ayrı test edilir.
 
 ## Performans
 

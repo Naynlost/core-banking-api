@@ -23,6 +23,12 @@ internal static class IntegrationTestServices
                 ["RabbitMq:Port"] = infrastructure.RabbitMqPort.ToString(),
                 ["RabbitMq:UserName"] = IntegrationInfrastructure.RabbitMqUserName,
                 ["RabbitMq:Password"] = IntegrationInfrastructure.RabbitMqPassword,
+
+                // Testlerde okunabilir sayılar için yuvarlak kur: 1 USD = 40 TRY,
+                // yani 1.000 TRY tam 25 USD eder.
+                ["Fx:BaseCurrency"] = "TRY",
+                ["Fx:Rates:USD"] = "40",
+                ["Fx:Rates:EUR"] = "50",
             })
             .Build();
 

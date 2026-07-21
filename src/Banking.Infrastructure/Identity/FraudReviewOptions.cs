@@ -7,3 +7,11 @@ public sealed class FraudReviewOptions
 
     public List<string> ReviewerEmails { get; init; } = [];
 }
+
+// Döviz pozisyonunu besleyebilecek hazine kullanıcıları; yukarıdakiyle aynı demo yaklaşımı
+public sealed class TreasuryOptions
+{
+    public const string SectionName = "Treasury";
+
+    public List<string> OperatorEmails { get; init; } = [];
+}

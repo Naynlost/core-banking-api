@@ -60,6 +60,11 @@ public sealed class Account
     public static Account OpenCash(Currency currency) =>
         new(AccountId.New(), SystemOwner, currency, AccountType.Asset, AccountStatus.Active, KycStatus.Verified);
 
+    // Bankanın o para birimindeki döviz pozisyonu. Çapraz kur transferinde alınan para
+    // birimi pozisyonu borçlandığı için önceden stok yüklenmiş olması gerekir.
+    public static Account OpenFxPosition(Currency currency) =>
+        new(AccountId.New(), SystemOwner, currency, AccountType.FxPosition, AccountStatus.Active, KycStatus.Verified);
+
     public Result CompleteKyc()
     {
         if (IsClosed)

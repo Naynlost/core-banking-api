@@ -3,7 +3,8 @@ using Banking.Domain.ValueObjects;
 
 namespace Banking.Domain.Ledgers;
 
-// Asset hesap debit ile, liability hesap credit ile büyür; kural burada tek yerde tutulur
+// Asset hesap debit ile, liability ve FX pozisyon hesapları credit ile büyür;
+// kural burada tek yerde tutulur
 public static class LedgerMath
 {
     public static Money Balance(Account account, decimal totalDebits, decimal totalCredits)

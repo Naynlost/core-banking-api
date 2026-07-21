@@ -48,8 +48,10 @@ public class TransactionTests
     }
 
     [Fact]
-    public void Create_WithMixedCurrencies_Fails()
+    public void Create_WhenOneCurrencyDoesNotBalanceAgainstAnother_Fails()
     {
+        // Farklı para birimleri birbirini dengeleyemez: 100 TRY borç, 100 USD alacak
+        // yazmak iki bacağı da açıkta bırakır.
         var result = Transaction.Create("Test", Timestamp,
         [
             new EntrySpec(AccountId.New(), Try(100m), EntryDirection.Debit),
@@ -57,7 +59,25 @@ public class TransactionTests
         ]);
 
         result.IsFailure.ShouldBeTrue();
-        result.Error.ShouldBe(TransactionErrors.MixedCurrencies);
+        result.Error.ShouldBe(TransactionErrors.Unbalanced);
+    }
+
+    [Fact]
+    public void Create_WithMultipleCurrenciesEachBalanced_Succeeds()
+    {
+        // Çapraz kur işleminin şekli: TRY bacağı kendi içinde, USD bacağı kendi içinde sıfırlanır.
+        var usd = Money.Create(30m, Currency.Usd).Value;
+
+        var result = Transaction.Create("Test", Timestamp,
+        [
+            new EntrySpec(AccountId.New(), Try(1_000m), EntryDirection.Debit),
+            new EntrySpec(AccountId.New(), Try(1_000m), EntryDirection.Credit),
+            new EntrySpec(AccountId.New(), usd, EntryDirection.Debit),
+            new EntrySpec(AccountId.New(), usd, EntryDirection.Credit),
+        ]);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.Entries.Count.ShouldBe(4);
     }
 
     [Fact]

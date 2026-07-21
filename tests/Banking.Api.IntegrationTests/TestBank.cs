@@ -15,14 +15,20 @@ internal static class TestBank
 
     // Varsayılan KYC verified açılır; fonlama gerçek bir deposit gibi kasaya karşı dengeli işlem olur
     public static async Task<Account> CreateAccountAsync(
-        IServiceProvider provider, string owner, decimal fundedWith = 0m, bool kycVerified = true)
+        IServiceProvider provider,
+        string owner,
+        decimal fundedWith = 0m,
+        bool kycVerified = true,
+        Currency? currency = null)
     {
+        currency ??= Currency.Try;
+
         await using var scope = provider.CreateAsyncScope();
         var accounts = scope.ServiceProvider.GetRequiredService<IAccountRepository>();
         var transactions = scope.ServiceProvider.GetRequiredService<ITransactionRepository>();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-        var account = Account.Open(owner, Currency.Try).Value;
+        var account = Account.Open(owner, currency).Value;
         if (kycVerified)
         {
             account.CompleteKyc();
@@ -32,10 +38,10 @@ internal static class TestBank
 
         if (fundedWith > 0m)
         {
-            var cash = Account.OpenCash(Currency.Try);
+            var cash = Account.OpenCash(currency);
             await accounts.AddAsync(cash, CancellationToken.None);
 
-            var amount = Money.Create(fundedWith, Currency.Try).Value;
+            var amount = Money.Create(fundedWith, currency).Value;
             var deposit = Transaction.Create(
                 "Deposit",
                 DateTimeOffset.UtcNow,

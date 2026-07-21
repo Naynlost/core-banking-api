@@ -62,6 +62,9 @@ public static class DependencyInjection
         services.AddScoped<IIdempotencyStore, IdempotencyStore>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+        services.Configure<Fx.FxOptions>(configuration.GetSection(Fx.FxOptions.SectionName));
+        services.AddScoped<IExchangeRateProvider, Fx.ConfiguredExchangeRateProvider>();
+
         services.Configure<RetentionOptions>(configuration.GetSection(RetentionOptions.SectionName));
         services.AddHostedService<RetentionCleaner>();
 
@@ -90,6 +93,7 @@ public static class DependencyInjection
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<FraudReviewOptions>(configuration.GetSection(FraudReviewOptions.SectionName));
+        services.Configure<TreasuryOptions>(configuration.GetSection(TreasuryOptions.SectionName));
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();

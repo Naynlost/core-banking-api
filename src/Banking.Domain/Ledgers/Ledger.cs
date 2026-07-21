@@ -105,4 +105,11 @@ public static class LedgerErrors
     public const string InsufficientFunds = "ledger.insufficient_funds";
     public const string SameAccount = "ledger.same_account";
     public const string DailyLimitExceeded = "ledger.daily_limit_exceeded";
+
+    // Bankanın hedef para birimindeki döviz pozisyonu transferi karşılamaya yetmiyor
+    public const string InsufficientFxLiquidity = "ledger.insufficient_fx_liquidity";
+
+    public const string NotAnFxPosition = "ledger.not_an_fx_position";
+
+    public const string NotACashAccount = "ledger.not_a_cash_account";
 }

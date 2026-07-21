@@ -16,3 +16,4 @@ eskisini "geçersiz kıldı" olarak işaretler.
 | [0007](0007-optimistic-locking.md) | Hesap versiyonu ile optimistic locking | Kabul edildi |
 | [0008](0008-outbox-pattern.md) | Güvenilir olay yayını için outbox + inbox + DLQ | Kabul edildi |
 | [0009](0009-free-oss-only.md) | Yalnızca ücretsiz ve açık kaynak bağımlılıklar | Kabul edildi |
+| [0010](0010-multi-currency-fx.md) | Çapraz kur: para birimi başına denge ve FX pozisyon hesapları | Kabul edildi |
