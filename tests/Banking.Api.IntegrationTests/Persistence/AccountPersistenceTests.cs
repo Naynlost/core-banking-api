@@ -29,7 +29,7 @@ public sealed class AccountPersistenceTests(IntegrationInfrastructure infrastruc
                 .SaveChangesAsync(CancellationToken.None);
         }
 
-        // Fresh scope => fresh DbContext, so the account really comes from the database.
+        // Taze scope => taze DbContext, hesap gerçekten veritabanından gelir
         await using (var scope = _provider.CreateAsyncScope())
         {
             var repository = scope.ServiceProvider.GetRequiredService<IAccountRepository>();

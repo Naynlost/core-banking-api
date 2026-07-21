@@ -1,9 +1,6 @@
 namespace Banking.Domain.Primitives;
 
-/// <summary>
-/// Outcome of a domain operation. Business rule violations come back as failed
-/// results; exceptions are kept for actual bugs and infrastructure problems.
-/// </summary>
+// İş kuralı ihlalleri exception değil, başarısız Result olarak döner
 public class Result
 {
     protected Result(bool isSuccess, string error)
@@ -37,9 +34,6 @@ public class Result
     public static Result<TValue> Failure<TValue>(string error) => new(default, false, error);
 }
 
-/// <summary>
-/// A <see cref="Result"/> that also carries a value on success.
-/// </summary>
 public sealed class Result<TValue> : Result
 {
     private readonly TValue? _value;
@@ -50,7 +44,7 @@ public sealed class Result<TValue> : Result
         _value = value;
     }
 
-    /// <summary>Throws on a failed result; check IsSuccess before reading this.</summary>
+    // Başarısız result'ta exception fırlatır, önce IsSuccess kontrol edilmeli
     public TValue Value => IsSuccess
         ? _value!
         : throw new InvalidOperationException($"Cannot access the value of a failed result: {Error}");

@@ -4,7 +4,7 @@ namespace Banking.Application.Abstractions;
 
 public interface IFraudAlertRepository
 {
-    /// <summary>One page of alerts, newest first, optionally filtered by status.</summary>
+    // En yeni önce, isteğe bağlı status filtresiyle
     Task<FraudAlertPage> ListAsync(
         FraudAlertStatus? status, int skip, int take, CancellationToken cancellationToken);
 

@@ -4,6 +4,6 @@ public static class AccountApplicationErrors
 {
     public const string NotFound = "account.not_found";
 
-    /// <summary>The account was modified concurrently; the client may retry.</summary>
+    // Hesap eş zamanlı değiştirilmiş, istemci tekrar deneyebilir
     public const string Conflict = "account.conflict";
 }

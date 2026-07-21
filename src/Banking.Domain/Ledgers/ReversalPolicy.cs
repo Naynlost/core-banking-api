@@ -4,13 +4,8 @@ using Banking.Domain.ValueObjects;
 
 namespace Banking.Domain.Ledgers;
 
-/// <summary>
-/// The ledger is append-only, so a wrong transaction is never edited or deleted;
-/// it is corrected by posting a new transaction with every entry flipped. Only an
-/// account that was credited by the original may trigger the reversal (it gives
-/// the money back), and its balance must still cover what it received. A reversal
-/// cannot itself be reversed — that would just be the original again.
-/// </summary>
+// Yanlış işlem silinmez; tüm satırları ters çevrilmiş yeni bir işlemle düzeltilir.
+// Sadece alacaklanan hesap ters kayıt başlatabilir, ters kaydın ters kaydı olmaz.
 public static class ReversalPolicy
 {
     public const string ReversalDescription = "Reversal";
@@ -40,7 +35,7 @@ public static class ReversalPolicy
             return Result.Failure<Transaction>(ReversalErrors.OnlyCreditedAccountCanReverse);
         }
 
-        // The reversal debits the refunder by exactly what the original credited it.
+        // Ters kayıt, iade edeni orijinalin alacaklandırdığı tutar kadar borçlandırır
         if (refundingBalance.Amount < refunded)
         {
             return Result.Failure<Transaction>(LedgerErrors.InsufficientFunds);
@@ -59,7 +54,6 @@ public static class ReversalPolicy
 
 public static class ReversalErrors
 {
-    /// <summary>A reversal cannot be reversed; post a new transaction instead.</summary>
     public const string NotReversible = "transaction.not_reversible";
 
     public const string OnlyCreditedAccountCanReverse = "transaction.only_credited_account_can_reverse";

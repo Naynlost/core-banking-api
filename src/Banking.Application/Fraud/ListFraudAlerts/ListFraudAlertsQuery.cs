@@ -2,10 +2,7 @@ using Banking.Application.Messaging;
 
 namespace Banking.Application.Fraud.ListFraudAlerts;
 
-/// <summary>
-/// One page of fraud alerts, newest first. <paramref name="Status"/> filters by
-/// review state ("Open", "Confirmed", "Dismissed"); null lists everything.
-/// </summary>
+// En yeni önce; Status null ise tümü, değilse Open/Confirmed/Dismissed'e göre filtreler
 public sealed record ListFraudAlertsQuery(
     string? Status = null,
     int Page = 1,

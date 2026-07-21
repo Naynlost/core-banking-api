@@ -15,10 +15,10 @@ internal sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refre
         builder.Property(t => t.UserId).HasMaxLength(64);
         builder.Property(t => t.TokenHash).HasMaxLength(64); // hex SHA-256
 
-        // The rotation lookup: find the presented token by hash.
+        // Rotation sorgusu: sunulan token'ı hash'e göre bulur
         builder.HasIndex(t => t.TokenHash).IsUnique();
 
-        // Reuse detection revokes all of a user's active tokens.
+        // Reuse tespiti bu index üzerinden kullanıcının tüm aktif token'larını iptal eder
         builder.HasIndex(t => t.UserId);
     }
 }

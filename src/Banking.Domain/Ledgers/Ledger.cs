@@ -4,13 +4,7 @@ using Banking.Domain.ValueObjects;
 
 namespace Banking.Domain.Ledgers;
 
-/// <summary>
-/// The append-only book of transactions. Validates movements (account open,
-/// matching currency, positive amount, enough funds) and calculates balances
-/// from the entries, since accounts don't store a balance themselves.
-/// Deposits and withdrawals are booked double-entry against the bank's cash
-/// account for that currency.
-/// </summary>
+// Değişmez (append-only) işlem defteri; bakiye hesapta değil, buradaki kayıtlarda tutulur
 public sealed class Ledger
 {
     private readonly List<Transaction> _transactions = [];
@@ -18,7 +12,6 @@ public sealed class Ledger
 
     public IReadOnlyList<Transaction> Transactions => _transactions;
 
-    /// <summary>The bank's own cash (asset) account for the given currency.</summary>
     public Account CashAccount(Currency currency)
     {
         if (!_cashAccounts.TryGetValue(currency, out var cash))
@@ -40,7 +33,6 @@ public sealed class Ledger
         Post(TransferPolicy.Transfer(
             source, GetBalance(source), GetTransferredOnDay(source, occurredAt), destination, amount, occurredAt));
 
-    /// <summary>Posts the correcting counter-transaction for <paramref name="original"/>.</summary>
     public Result<Transaction> Reverse(
         Transaction original,
         Account refundingAccount,
@@ -56,7 +48,6 @@ public sealed class Ledger
             original, refundingAccount.Id, GetBalance(refundingAccount), involvedAccounts, occurredAt));
     }
 
-    /// <summary>How much the account has already sent by transfer on the given UTC day.</summary>
     public Money GetTransferredOnDay(Account account, DateTimeOffset day)
     {
         var utcDate = day.UtcDateTime.Date;
@@ -71,7 +62,6 @@ public sealed class Ledger
         return Money.Create(total, account.Currency).Value;
     }
 
-    /// <summary>Calculates the account's balance from its ledger entries.</summary>
     public Money GetBalance(Account account)
     {
         decimal debits = 0;

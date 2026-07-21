@@ -3,11 +3,7 @@ using Testcontainers.RabbitMq;
 
 namespace Banking.Api.IntegrationTests;
 
-/// <summary>
-/// One PostgreSQL and one RabbitMQ container for the whole integration test
-/// run (Testcontainers): the suite needs nothing pre-installed besides Docker,
-/// locally and in CI alike, and never touches the docker-compose dev data.
-/// </summary>
+// Testcontainers ile tüm çalıştırma boyunca tek Postgres + RabbitMQ; docker-compose dev verisine dokunmaz
 public sealed class IntegrationInfrastructure : IAsyncLifetime
 {
     public const string RabbitMqUserName = "banking";
@@ -37,11 +33,7 @@ public sealed class IntegrationInfrastructure : IAsyncLifetime
     }
 }
 
-/// <summary>
-/// All integration test classes join this collection: they share the two
-/// containers and run sequentially, because they exchange messages over the
-/// same broker queues and would steal each other's deliveries in parallel.
-/// </summary>
+// Tüm integration testleri aynı koleksiyonda; aynı kuyrukları paylaştıklarından paralelde çakışırlardı
 [CollectionDefinition(Name)]
 public sealed class IntegrationCollection : ICollectionFixture<IntegrationInfrastructure>
 {

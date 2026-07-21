@@ -2,10 +2,6 @@ using Banking.Application.Messaging;
 
 namespace Banking.Application.Transactions.ReverseTransaction;
 
-/// <summary>
-/// Posts the reversal of a transaction; returns the reversal's transaction id.
-/// The requester must own an account the original transaction credited (it is
-/// the one giving the money back). No idempotency key: the unique index on the
-/// reversal link makes a second reversal impossible by construction.
-/// </summary>
+// Requester, orijinalin alacaklandırdığı hesaba sahip olmalı; idempotency key gerekmez
+// çünkü reversal linkindeki unique index ikinci ters kaydı zaten imkansız kılar
 public sealed record ReverseTransactionCommand(Guid TransactionId, string Requester) : ICommand<Guid>;

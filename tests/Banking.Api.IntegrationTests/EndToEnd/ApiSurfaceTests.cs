@@ -11,11 +11,7 @@ using Shouldly;
 
 namespace Banking.Api.IntegrationTests.EndToEnd;
 
-/// <summary>
-/// The customer-facing API surface over the real HTTP pipeline: cash in/out with
-/// idempotency, derived balances, the statement, account closure, refresh token
-/// rotation and transfer reversal.
-/// </summary>
+// Gerçek HTTP pipeline üzerinden müşteri API yüzeyi: yatır/çek, bakiye, ekstre, kapatma, refresh, reversal
 [Collection(IntegrationCollection.Name)]
 public sealed class ApiSurfaceTests(IntegrationInfrastructure infrastructure) : IAsyncLifetime
 {
@@ -43,7 +39,7 @@ public sealed class ApiSurfaceTests(IntegrationInfrastructure infrastructure) : 
         await AuthenticateAsync(_client);
         var account = await CreateAccountAsync(_client);
 
-        // Deposit is idempotent: the replay returns the same transaction, not a second deposit.
+        // Deposit idempotent: tekrar aynı işlemi döner, ikinci bir yatırım oluşmaz
         var depositKey = $"dep-{Guid.NewGuid():N}";
         var deposit = await CashAsync(_client, account, "deposits", 1_000m, depositKey);
         var replay = await CashAsync(_client, account, "deposits", 1_000m, depositKey);
@@ -53,7 +49,7 @@ public sealed class ApiSurfaceTests(IntegrationInfrastructure infrastructure) : 
         await CashAsync(_client, account, "withdrawals", 250m, $"wd-{Guid.NewGuid():N}");
         (await GetBalanceAsync(_client, account)).ShouldBe(750m);
 
-        // Statement: newest first, one line per ledger entry of this account.
+        // Ekstre: en yeni önce, hesabın her ledger kaydı bir satır
         var statement = (await _client.GetFromJsonAsync<AccountStatementResponse>(
             $"/api/accounts/{account}/transactions?page=1&pageSize=10")).ShouldNotBeNull();
         statement.TotalCount.ShouldBe(2);
@@ -61,7 +57,7 @@ public sealed class ApiSurfaceTests(IntegrationInfrastructure infrastructure) : 
         statement.Items[0].Direction.ShouldBe("Debit");
         statement.Items[1].Description.ShouldBe("Deposit");
 
-        // Closing is blocked while money remains, allowed at zero.
+        // Bakiye varken kapatma engellenir, sıfırken izin verilir
         var earlyClose = await _client.PostAsync($"/api/accounts/{account}/close", content: null);
         earlyClose.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
 
@@ -73,7 +69,7 @@ public sealed class ApiSurfaceTests(IntegrationInfrastructure infrastructure) : 
         closed.Status.ShouldBe("Closed");
         closed.Balance.ShouldBe(0m);
 
-        // The account list shows the (closed) account with its derived balance.
+        // Hesap listesi (kapalı) hesabı türetilmiş bakiyesiyle gösterir
         var list = (await _client.GetFromJsonAsync<List<AccountResponse>>("/api/accounts")).ShouldNotBeNull();
         list.ShouldHaveSingleItem().Id.ShouldBe(account);
     }
@@ -83,14 +79,13 @@ public sealed class ApiSurfaceTests(IntegrationInfrastructure infrastructure) : 
     {
         var first = await AuthenticateAsync(_client);
 
-        // Rotation: the old token buys a new pair...
+        // Rotation: eski token yeni bir çift satın alır
         var rotated = await _client.PostAsJsonAsync("/api/auth/refresh", new RefreshRequest(first.RefreshToken));
         rotated.StatusCode.ShouldBe(HttpStatusCode.OK);
         var second = (await rotated.Content.ReadFromJsonAsync<AuthResponse>()).ShouldNotBeNull();
         second.RefreshToken.ShouldNotBe(first.RefreshToken);
 
-        // ...reusing the consumed token is rejected and revokes everything,
-        // including the token that was just issued.
+        // Tüketilmiş token tekrar kullanılırsa reddedilir ve yeni verilen token dahil her şeyi iptal eder
         (await _client.PostAsJsonAsync("/api/auth/refresh", new RefreshRequest(first.RefreshToken)))
             .StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         (await _client.PostAsJsonAsync("/api/auth/refresh", new RefreshRequest(second.RefreshToken)))
@@ -110,7 +105,7 @@ public sealed class ApiSurfaceTests(IntegrationInfrastructure infrastructure) : 
         await AuthenticateAsync(receiverClient);
         var destination = await CreateAccountAsync(receiverClient);
 
-        // Transfer 200 from the sender...
+        // Gönderenden 200 transfer et
         using var transferRequest = new HttpRequestMessage(HttpMethod.Post, "/api/transfers")
         {
             Content = JsonContent.Create(new TransferRequest(source, destination, 200m, "TRY")),
@@ -120,14 +115,14 @@ public sealed class ApiSurfaceTests(IntegrationInfrastructure infrastructure) : 
         transferResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var transfer = (await transferResponse.Content.ReadFromJsonAsync<TransferResponse>()).ShouldNotBeNull();
 
-        // ...the receiver reverses it; both balances are back where they started.
+        // Alıcı ters kayıt atar, iki bakiye de başladığı yere döner
         var reversal = await receiverClient.PostAsync(
             $"/api/transactions/{transfer.TransactionId}/reversal", content: null);
         reversal.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await GetBalanceAsync(_client, source)).ShouldBe(500m);
         (await GetBalanceAsync(receiverClient, destination)).ShouldBe(0m);
 
-        // A transaction is reversed at most once.
+        // Bir işlem en fazla bir kez ters kaydedilebilir
         var secondReversal = await receiverClient.PostAsync(
             $"/api/transactions/{transfer.TransactionId}/reversal", content: null);
         secondReversal.StatusCode.ShouldBe(HttpStatusCode.BadRequest);

@@ -9,16 +9,11 @@ using Shouldly;
 
 namespace Banking.Api.IntegrationTests.Messaging;
 
-/// <summary>
-/// Proves the outbox pattern end to end against real PostgreSQL and RabbitMQ:
-/// the event is staged in the same transaction as the transfer, survives an
-/// application restart, reaches the broker, and both consumers process it
-/// exactly once (inbox dedupe).
-/// </summary>
+// Outbox pattern'i uçtan uca kanıtlar: olay transferle aynı transaction'da yazılır, restart'a dayanır, iki consumer da işler
 [Collection(IntegrationCollection.Name)]
 public sealed class OutboxTests(IntegrationInfrastructure infrastructure)
 {
-    // Broker topology as seen from the outside — mirrors MessageTopology.
+    // Broker topolojisi dışarıdan böyle görünür, MessageTopology'yi yansıtır
     private const string NotificationsQueue = "notifications.money-transferred";
     private const string FraudQueue = "fraud.money-transferred";
 
@@ -34,7 +29,7 @@ public sealed class OutboxTests(IntegrationInfrastructure infrastructure)
         result.IsSuccess.ShouldBeTrue();
         var message = await FindOutboxMessageAsync(provider, result.Value);
         message.ShouldNotBeNull();
-        message.ProcessedAt.ShouldBeNull(); // staged, not yet published
+        message.ProcessedAt.ShouldBeNull(); // hazırlandı, henüz yayınlanmadı
 
         var @event = JsonSerializer.Deserialize<MoneyTransferred>(message.Payload);
         @event.ShouldNotBeNull();
@@ -47,8 +42,7 @@ public sealed class OutboxTests(IntegrationInfrastructure infrastructure)
     [Fact]
     public async Task PendingEvent_SurvivesRestart_IsPublishedAndConsumedByBothConsumers()
     {
-        // "First run" of the application: the transfer commits, but the process
-        // goes away before the outbox publisher ever gets to the new row.
+        // "İlk çalıştırma": transfer commit olur ama süreç, publisher yeni satıra ulaşmadan kapanır
         Guid transactionId;
         await using (var firstRun = await IntegrationTestServices.CreateProviderAsync(infrastructure))
         {
@@ -59,10 +53,10 @@ public sealed class OutboxTests(IntegrationInfrastructure infrastructure)
             transactionId = result.Value;
         }
 
-        // "Restart": a fresh service graph finds the pending row in the database.
+        // "Restart": taze bir servis grafiği veritabanındaki bekleyen satırı bulur
         await using var provider = await IntegrationTestServices.CreateProviderAsync(infrastructure);
         var hostedServices = provider.GetServices<IHostedService>().ToList();
-        hostedServices.ShouldNotBeEmpty(); // publisher + both consumers
+        hostedServices.ShouldNotBeEmpty(); // publisher + iki consumer
 
         foreach (var service in hostedServices)
         {

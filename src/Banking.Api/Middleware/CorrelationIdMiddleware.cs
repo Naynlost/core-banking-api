@@ -4,13 +4,7 @@ using Serilog.Context;
 
 namespace Banking.Api.Middleware;
 
-/// <summary>
-/// Gives every request a correlation id: taken from the X-Correlation-Id header
-/// when the caller supplies one, generated otherwise. The id is returned in the
-/// response, stamped on every log line via the log context, tagged on the trace,
-/// and put into activity baggage so it rides along into outbox rows and queue
-/// messages — one id connects the whole story of a request.
-/// </summary>
+// X-Correlation-Id header'dan alınır veya üretilir; log/trace/baggage'a işlenip outbox ve kuyruğa kadar taşınır
 public sealed class CorrelationIdMiddleware(RequestDelegate next)
 {
     public const string HeaderName = "X-Correlation-Id";

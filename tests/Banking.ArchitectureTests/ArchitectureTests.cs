@@ -4,11 +4,7 @@ using Shouldly;
 
 namespace Banking.ArchitectureTests;
 
-/// <summary>
-/// Clean Architecture bağımlılık kurallarını derleme sonrası doğrular (bkz. ADR 0001).
-/// Kurallar derleyici tarafından tam zorlanamadığı için buradaki testler güvenlik ağıdır:
-/// yanlış yönde eklenen bir referans veya using CI'da bu testleri kırar.
-/// </summary>
+// Clean Architecture bağımlılık kurallarını derleme sonrası doğrular (bkz. ADR 0001)
 public class ArchitectureTests
 {
     private static readonly Assembly Domain = typeof(Banking.Domain.ValueObjects.Money).Assembly;

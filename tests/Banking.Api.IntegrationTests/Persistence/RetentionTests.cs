@@ -9,11 +9,7 @@ using Shouldly;
 
 namespace Banking.Api.IntegrationTests.Persistence;
 
-/// <summary>
-/// The retention pass removes only what no longer serves a purpose: published
-/// outbox rows, old inbox marks and expired idempotency keys. Pending outbox
-/// rows and fresh idempotency keys must survive.
-/// </summary>
+// Retention geçişi sadece işi biteni siler: yayınlanmış outbox, eski inbox, süresi dolmuş idempotency key
 [Collection(IntegrationCollection.Name)]
 public sealed class RetentionTests(IntegrationInfrastructure infrastructure)
 {
@@ -24,7 +20,7 @@ public sealed class RetentionTests(IntegrationInfrastructure infrastructure)
         var now = DateTimeOffset.UtcNow;
 
         var oldPublished = NewOutboxMessage(now.AddDays(-10), processedAt: now.AddDays(-9));
-        var oldPending = NewOutboxMessage(now.AddDays(-10), processedAt: null); // never published: keep!
+        var oldPending = NewOutboxMessage(now.AddDays(-10), processedAt: null); // hiç yayınlanmadı: silinmemeli
         var freshPublished = NewOutboxMessage(now.AddHours(-1), processedAt: now.AddMinutes(-30));
         var oldIdempotencyKey = $"old-{Guid.NewGuid():N}";
         var freshIdempotencyKey = $"fresh-{Guid.NewGuid():N}";
@@ -52,7 +48,7 @@ public sealed class RetentionTests(IntegrationInfrastructure infrastructure)
 
         var removed = await cleaner.CleanOnceAsync(CancellationToken.None);
 
-        removed.ShouldBeGreaterThanOrEqualTo(3); // old published + old inbox + old idempotency
+        removed.ShouldBeGreaterThanOrEqualTo(3); // eski outbox + eski inbox + eski idempotency
         await using var verify = provider.CreateAsyncScope();
         var db = verify.ServiceProvider.GetRequiredService<BankingDbContext>();
         (await db.Set<OutboxMessage>().AnyAsync(m => m.Id == oldPublished.Id)).ShouldBeFalse();

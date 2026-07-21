@@ -14,6 +14,6 @@ public sealed class RabbitMqOptions
 
     public string VirtualHost { get; init; } = "/";
 
-    /// <summary>AMQPS (TLS) — required by managed brokers like CloudAMQP; off for local Docker.</summary>
+    // CloudAMQP gibi managed broker'lar için gerekli, lokal Docker'da kapalı
     public bool UseTls { get; init; }
 }

@@ -44,7 +44,7 @@ internal sealed class StandingOrderConfiguration : IEntityTypeConfiguration<Stan
             .HasConversion<string>()
             .HasMaxLength(16);
 
-        // Get-only properties are not discovered by convention; map explicitly.
+        // Get-only property, convention ile keşfedilmez; elle map edilir
         builder.Property(o => o.NextRunAt);
         builder.Property(o => o.CreatedAt);
         builder.Property(o => o.LastRunAt);
@@ -52,7 +52,7 @@ internal sealed class StandingOrderConfiguration : IEntityTypeConfiguration<Stan
         builder.Property(o => o.LastRunError)
             .HasMaxLength(128);
 
-        // The executor's polling query: active orders ordered by due time.
+        // Executor'ın polling sorgusu: aktif emirler vade zamanına göre
         builder.HasIndex(o => new { o.Status, o.NextRunAt });
 
         builder.HasIndex(o => o.Owner);

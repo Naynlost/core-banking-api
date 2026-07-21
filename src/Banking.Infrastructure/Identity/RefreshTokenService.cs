@@ -8,19 +8,13 @@ namespace Banking.Infrastructure.Identity;
 
 public sealed record IssuedRefreshToken(string Token, DateTimeOffset ExpiresAtUtc);
 
-/// <summary>Outcome of presenting a refresh token: the user and a replacement token, or nothing.</summary>
 public sealed record RefreshRotation(ApplicationUser User, IssuedRefreshToken NewToken);
 
 public interface IRefreshTokenService
 {
     Task<IssuedRefreshToken> IssueAsync(ApplicationUser user, CancellationToken cancellationToken);
 
-    /// <summary>
-    /// Consumes the presented token and issues a replacement. Returns null when
-    /// the token is unknown, expired or already used — in the last case every
-    /// active token of that user is revoked, because a used token showing up
-    /// again means it leaked.
-    /// </summary>
+    // Bilinmeyen/süresi dolmuş/kullanılmış token null döner; kullanılmış token tekrar gelirse tüm token'lar iptal edilir
     Task<RefreshRotation?> RotateAsync(string token, CancellationToken cancellationToken);
 }
 
@@ -49,8 +43,7 @@ internal sealed class RefreshTokenService(
         var now = timeProvider.GetUtcNow();
         if (!stored.IsActive(now))
         {
-            // Reuse of a consumed/expired token: assume the token leaked and cut
-            // off every session of this user.
+            // Kullanılmış/süresi dolmuş token tekrar geldi: sızmış varsayılıp kullanıcının tüm oturumları kesilir
             await context.Set<RefreshToken>()
                 .Where(t => t.UserId == stored.UserId && t.RevokedAt == null)
                 .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, now), cancellationToken);
@@ -72,7 +65,7 @@ internal sealed class RefreshTokenService(
 
     private async Task<IssuedRefreshToken> StageNewTokenAsync(string userId, CancellationToken cancellationToken)
     {
-        // 256 bits of randomness; the client gets the value, the database its hash.
+        // 256 bit rastgelelik; istemci değeri, veritabanı hash'ini alır
         var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         var now = timeProvider.GetUtcNow();
         var expiresAt = now.AddDays(options.Value.RefreshTokenDays);

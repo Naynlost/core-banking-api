@@ -38,9 +38,7 @@ internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.Property(a => a.DailyTransferLimit)
             .HasPrecision(18, 2);
 
-        // App-managed optimistic concurrency token (Postgres has no rowversion type):
-        // every movement bumps it, so concurrent movements on the same account
-        // turn into an update conflict instead of silently coexisting.
+        // Postgres'te rowversion tipi yok, bu yüzden uygulama yönetimli concurrency token kullanılır
         builder.Property(a => a.Version)
             .IsConcurrencyToken();
     }

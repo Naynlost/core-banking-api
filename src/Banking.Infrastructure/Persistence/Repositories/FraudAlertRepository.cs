@@ -17,7 +17,7 @@ internal sealed class FraudAlertRepository(BankingDbContext context) : IFraudAle
 
         var totalCount = await query.CountAsync(cancellationToken);
 
-        // Id breaks ties so pages stay stable when alerts share a timestamp.
+        // Aynı zaman damgasını paylaşan uyarılarda sayfalar kaymasın diye Id ile tie-break
         var alerts = await query
             .OrderByDescending(alert => alert.FlaggedAt)
             .ThenBy(alert => alert.Id)

@@ -11,12 +11,7 @@ using RabbitMQ.Client.Events;
 
 namespace Banking.Infrastructure.Messaging.Consumers;
 
-/// <summary>
-/// Base for queue consumers. Handles connecting (retrying while the broker is
-/// down), topology declaration, manual acks and idempotent reprocessing: the
-/// broker delivers at least once, so each handled message id is recorded in the
-/// inbox table and redeliveries of it are acknowledged without re-handling.
-/// </summary>
+// Broker en az bir kez teslim eder; işlenen mesaj id'si inbox tablosuna yazılır ve tekrar teslimat işlenmeden ack'lenir
 internal abstract class RabbitMqEventConsumer(
     RabbitMqConnectionProvider connections,
     IServiceScopeFactory scopeFactory,
@@ -25,7 +20,7 @@ internal abstract class RabbitMqEventConsumer(
 {
     private static readonly TimeSpan ReconnectDelay = TimeSpan.FromSeconds(5);
 
-    /// <summary>Also used as the queue name and the inbox consumer id.</summary>
+    // Aynı zamanda kuyruk adı ve inbox consumer id'si olarak kullanılır
     protected abstract string ConsumerName { get; }
 
     protected abstract string RoutingKey { get; }
@@ -83,8 +78,7 @@ internal abstract class RabbitMqEventConsumer(
     private async Task OnDeliveryAsync(
         IChannel channel, BasicDeliverEventArgs delivery, CancellationToken cancellationToken)
     {
-        // Continue the trace and correlation the publisher put on the message,
-        // so consumer spans and logs line up with the originating request.
+        // Publisher'ın mesaja koyduğu trace/correlation'ı devam ettirir
         using var activity = MessagingDiagnostics.ActivitySource.StartActivity(
             $"consume {ConsumerName}",
             ActivityKind.Consumer,
@@ -115,7 +109,7 @@ internal abstract class RabbitMqEventConsumer(
             }
             else
             {
-                // No message id, no dedupe possible — handle as-is.
+                // Mesaj id'si yok, dedupe imkansız — olduğu gibi işle
                 await HandleAsync(eventType, payload, cancellationToken);
             }
 
@@ -123,10 +117,8 @@ internal abstract class RabbitMqEventConsumer(
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            // One redelivery smooths transient failures (broker restart, DB hiccup).
-            // A message that fails twice is poison: rejecting it without requeue
-            // makes the broker dead-letter it into banking.dead-letters, where it
-            // waits for a human instead of looping or getting lost.
+            // Bir kez requeue geçici hataları tolere eder; ikinci hatada mesaj poison sayılıp
+            // banking.dead-letters'a düşer ve bir insanı bekler
             var requeue = !delivery.Redelivered;
             logger.LogError(
                 exception, "{Consumer} failed to process delivery {DeliveryTag}; {Outcome}",
@@ -143,7 +135,7 @@ internal abstract class RabbitMqEventConsumer(
         {
             return value switch
             {
-                byte[] bytes => Encoding.UTF8.GetString(bytes), // AMQP short strings arrive as bytes
+                byte[] bytes => Encoding.UTF8.GetString(bytes), // AMQP short string'ler byte olarak gelir
                 string text => text,
                 _ => null,
             };
@@ -180,7 +172,7 @@ internal abstract class RabbitMqEventConsumer(
         catch (DbUpdateException exception)
             when (exception.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
         {
-            // A concurrent redelivery beat us to it; already marked is fine.
+            // Eş zamanlı bir tekrar teslimat bizden önce davranmış, zaten işaretlenmiş olması sorun değil
         }
     }
 }

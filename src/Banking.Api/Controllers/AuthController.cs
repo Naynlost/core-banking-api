@@ -38,7 +38,7 @@ public sealed class AuthController(
     {
         var user = await userManager.FindByEmailAsync(request.Email);
 
-        // Same response whether the email or the password is wrong.
+        // E-posta veya şifre yanlışsa aynı cevap döner
         if (user is null || !await userManager.CheckPasswordAsync(user, request.Password))
         {
             return Problem(
@@ -49,17 +49,13 @@ public sealed class AuthController(
         return Ok(await CreateAuthResponseAsync(user, cancellationToken));
     }
 
-    /// <summary>
-    /// Exchanges a refresh token for a fresh token pair. The presented token is
-    /// consumed (rotation); reusing a consumed token revokes all of the user's
-    /// refresh tokens.
-    /// </summary>
+    // Sunulan token tüketilir (rotation); tüketilmiş token tekrar gelirse tüm token'lar iptal edilir
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh(RefreshRequest request, CancellationToken cancellationToken)
     {
         var rotation = await refreshTokens.RotateAsync(request.RefreshToken, cancellationToken);
 
-        // Unknown, expired and reused tokens all get the same answer.
+        // Bilinmeyen, süresi dolmuş ve tekrar kullanılan token'lar aynı cevabı alır
         if (rotation is null)
         {
             return Problem(

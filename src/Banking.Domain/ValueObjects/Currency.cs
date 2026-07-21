@@ -2,9 +2,7 @@ using Banking.Domain.Primitives;
 
 namespace Banking.Domain.ValueObjects;
 
-/// <summary>
-/// An ISO 4217 currency code, e.g. "TRY" or "USD".
-/// </summary>
+// ISO 4217 para birimi kodu, ör. "TRY" veya "USD"
 public sealed record Currency
 {
     public static readonly Currency Try = new("TRY");

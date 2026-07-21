@@ -1,14 +1,14 @@
 import http from 'k6/http';
 import { check } from 'k6';
 
-// Load profile: 10 virtual users hammer POST /api/transfers for 30 seconds,
-// each VU with its own funded account pair (so the numbers measure the
-// pipeline, not artificial contention on a single account). Amount is 1 TRY
-// to stay far below the 20.000/day transfer limit.
+// Yük profili: 10 sanal kullanıcı 30 saniye boyunca POST /api/transfers'e yüklenir.
+// Her kullanıcının kendi fonlanmış hesap çifti vardır; böylece ölçülen şey tek bir
+// hesap üzerindeki yapay çekişme değil, pipeline'ın kendisi olur. Tutar 1 TRY —
+// 20.000'lik günlük transfer limitinin çok altında kalmak için.
 //
-// Run (API listening on http://localhost:5000):
+// Çalıştırma (API http://localhost:5000 dinlerken):
 //   docker run --rm -i grafana/k6 run --add-host=host.docker.internal:host-gateway - < loadtest/transfer-load.js
-// or with a local k6 install:
+// veya yerel k6 kurulumuyla:
 //   k6 run -e BASE_URL=http://localhost:5000 loadtest/transfer-load.js
 
 const BASE_URL = __ENV.BASE_URL || 'http://host.docker.internal:5000';
@@ -92,7 +92,7 @@ export default function (data) {
 }
 
 export function teardown(data) {
-    // Money conservation: every pair still holds exactly the deposited total.
+    // Para korunumu: her çift hâlâ yatırılan toplamın tamamını tutuyor
     for (const pair of data.pairs) {
         const source = http.get(`${BASE_URL}/api/accounts/${pair.source}`, { headers: jsonHeaders(data.token) });
         const destination = http.get(`${BASE_URL}/api/accounts/${pair.destination}`, { headers: jsonHeaders(data.token) });

@@ -16,8 +16,7 @@ internal sealed class Outbox(BankingDbContext context, TimeProvider timeProvider
                 Type = @event.GetType().Name,
                 Payload = JsonSerializer.Serialize(@event, @event.GetType()),
                 OccurredAt = timeProvider.GetUtcNow(),
-                // Snapshot the calling trace: publication happens later on a
-                // background service, far from the request that raised the event.
+                // Çağıran trace'i burada yakala; yayın çok sonra background service'te olur
                 TraceParent = Activity.Current?.Id,
                 CorrelationId = Activity.Current?.GetBaggageItem(MessagingDiagnostics.CorrelationBaggageKey),
             },

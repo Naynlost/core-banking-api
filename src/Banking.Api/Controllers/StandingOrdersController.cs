@@ -12,11 +12,7 @@ namespace Banking.Api.Controllers;
 [Route("api/standing-orders")]
 public sealed class StandingOrdersController(IDispatcher dispatcher) : ControllerBase
 {
-    /// <summary>
-    /// Sets up a recurring transfer. Each occurrence is executed as a regular
-    /// transfer in the background, so KYC, balance and daily limit rules apply
-    /// at execution time.
-    /// </summary>
+    // Her tekrar arka planda normal transfer olarak çalışır, kurallar çalışma anında uygulanır
     [HttpPost]
     public async Task<IActionResult> Create(CreateStandingOrderRequest request, CancellationToken cancellationToken)
     {

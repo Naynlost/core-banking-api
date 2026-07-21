@@ -24,15 +24,10 @@ public static class StandingOrderErrors
     public const string AlreadyCancelled = "standing_order.already_cancelled";
 }
 
-/// <summary>
-/// A recurring transfer instruction: "send this amount from A to B every
-/// day/week/month". The order only schedules; each occurrence is executed as a
-/// regular transfer, so every transfer rule (KYC, balance, daily limit) applies
-/// at execution time, not at creation time.
-/// </summary>
+// Sadece zamanlar; her tekrar normal transfer olarak çalıştığından KYC/bakiye/limit kuralları çalışma anında uygulanır
 public sealed class StandingOrder
 {
-    // For EF materialization only; the data was validated when it was written.
+    // EF'in nesne oluşturması için, veri yazılırken zaten doğrulanmıştı
     private StandingOrder()
     {
         Owner = null!;
@@ -74,23 +69,17 @@ public sealed class StandingOrder
 
     public StandingOrderStatus Status { get; private set; }
 
-    /// <summary>When the next occurrence is due. Advanced only after an execution attempt.</summary>
     public DateTimeOffset NextRunAt { get; private set; }
 
     public DateTimeOffset CreatedAt { get; }
 
     public DateTimeOffset? LastRunAt { get; private set; }
 
-    /// <summary>Error code of the last occurrence, or null when it succeeded.</summary>
     public string? LastRunError { get; private set; }
 
     public bool IsActive => Status == StandingOrderStatus.Active;
 
-    /// <summary>
-    /// Deterministic idempotency key for the occurrence currently due: the same
-    /// (order, scheduled time) pair always produces the same key, so a crashed
-    /// or repeated executor pass can never execute one occurrence twice.
-    /// </summary>
+    // (order, planlanan zaman) çiftinden türer; çökme sonrası tekrar çalıştırma aynı occurrence'ı iki kez işlemez
     public string CurrentRunKey => $"so-{Id:N}-{NextRunAt.UtcTicks}";
 
     public static Result<StandingOrder> Create(
@@ -133,11 +122,7 @@ public sealed class StandingOrder
         return Result.Success();
     }
 
-    /// <summary>
-    /// Records the outcome of the occurrence that was due and schedules the next
-    /// one. The next time advances from the scheduled time, not from when the
-    /// executor happened to run, so the schedule never drifts.
-    /// </summary>
+    // Sonraki zaman planlanan zamandan ilerler, çalıştığı andan değil; böylece plan kaymaz
     public void RecordRun(DateTimeOffset ranAt, string? error)
     {
         LastRunAt = ranAt;

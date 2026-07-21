@@ -18,7 +18,7 @@ internal sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outb
         builder.Property(m => m.TraceParent).HasMaxLength(64);
         builder.Property(m => m.CorrelationId).HasMaxLength(64);
 
-        // The publisher's polling query: unprocessed rows in arrival order.
+        // Publisher'ın polling sorgusu: işlenmemiş satırlar geliş sırasında
         builder.HasIndex(m => m.OccurredAt).HasFilter("processed_at IS NULL");
     }
 }

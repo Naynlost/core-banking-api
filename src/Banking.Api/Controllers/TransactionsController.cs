@@ -12,11 +12,7 @@ namespace Banking.Api.Controllers;
 [Route("api/transactions")]
 public sealed class TransactionsController(IDispatcher dispatcher) : ControllerBase
 {
-    /// <summary>
-    /// Posts the reversal of a transaction. The ledger is append-only, so the
-    /// original is never touched; a counter-transaction with flipped entries is
-    /// added. Only the owner of an account the transaction credited can do this.
-    /// </summary>
+    // Ledger append-only olduğundan orijinale dokunulmaz, ters çevrilmiş satırlarla yeni işlem eklenir
     [HttpPost("{id:guid}/reversal")]
     public async Task<IActionResult> Reverse(Guid id, CancellationToken cancellationToken)
     {

@@ -7,10 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Banking.Api.IntegrationTests;
 
-/// <summary>
-/// Builds the real application service graph against the Testcontainers
-/// PostgreSQL and RabbitMQ instances, with migrations applied.
-/// </summary>
+// Testcontainers Postgres/RabbitMQ'ya karşı gerçek servis grafiğini kurar, migration'ları uygular
 internal static class IntegrationTestServices
 {
     public static async Task<ServiceProvider> CreateProviderAsync(IntegrationInfrastructure infrastructure)

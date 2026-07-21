@@ -34,8 +34,7 @@ internal sealed class CloseAccountCommandHandler(
 
         try
         {
-            // Close bumps the version, so a movement racing this close makes the
-            // save conflict instead of landing on a closed account unnoticed.
+            // Close, Version'ı artırır; kapanışla yarışan bir hareket sessizce kaybolmak yerine save'de çakışır
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }
         catch (ConcurrencyConflictException)

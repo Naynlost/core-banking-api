@@ -19,18 +19,17 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
         builder.Property(t => t.Description)
             .HasMaxLength(200);
 
-        // Get-only properties are not discovered by convention; map explicitly.
+        // Get-only property, convention ile keşfedilmez; elle map edilir
         builder.Property(t => t.OccurredAt);
 
         builder.Property(t => t.ReversesTransactionId)
             .HasConversion(ValueConverters.TransactionId);
 
-        // At most one reversal per transaction — two racing reversals cannot both land.
+        // İşlem başına en fazla bir ters kayıt, yarışan iki reversal aynı anda kazanamaz
         builder.HasIndex(t => t.ReversesTransactionId)
             .IsUnique();
 
-        // Entries live and die with their transaction; deleting either is
-        // forbidden anyway (append-only ledger), so restrict cascades.
+        // Ledger zaten append-only olduğundan silme yasak, cascade'i de kısıtla
         builder.HasMany(t => t.Entries)
             .WithOne()
             .HasForeignKey(e => e.TransactionId)

@@ -2,10 +2,7 @@ using Banking.Domain.Primitives;
 
 namespace Banking.Domain.ValueObjects;
 
-/// <summary>
-/// An amount of money in a single currency. The amount is never negative;
-/// whether it's a debit or a credit lives on the ledger entry, not here.
-/// </summary>
+// Tutar hiçbir zaman negatif değildir; borç/alacak ayrımı ledger satırında tutulur
 public sealed record Money
 {
     private Money(decimal amount, Currency currency)

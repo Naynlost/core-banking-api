@@ -4,7 +4,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Banking.Infrastructure.Health;
 
-/// <summary>Readiness: can the application actually reach its database?</summary>
 internal sealed class PostgresHealthCheck(BankingDbContext context) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(
@@ -23,7 +22,6 @@ internal sealed class PostgresHealthCheck(BankingDbContext context) : IHealthChe
     }
 }
 
-/// <summary>Readiness: is the broker connection open (or can one be opened)?</summary>
 internal sealed class RabbitMqHealthCheck(RabbitMqConnectionProvider connections) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(

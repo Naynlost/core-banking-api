@@ -9,12 +9,7 @@ using Shouldly;
 
 namespace Banking.Api.IntegrationTests.StandingOrders;
 
-/// <summary>
-/// The standing order executor against real PostgreSQL: a due order executes as
-/// a regular ledger transfer, the schedule advances, and — because every
-/// occurrence carries a deterministic idempotency key — a repeated pass over
-/// the same occurrence (crash-and-rerun scenario) never moves the money twice.
-/// </summary>
+// Vadesi gelen emir normal transfer olarak çalışır; deterministik key sayesinde crash-and-rerun çift ödemez
 [Collection(IntegrationCollection.Name)]
 public sealed class StandingOrderExecutionTests(IntegrationInfrastructure infrastructure)
 {
@@ -31,7 +26,7 @@ public sealed class StandingOrderExecutionTests(IntegrationInfrastructure infras
             TimeProvider.System,
             NullLogger<StandingOrderExecutor>.Instance);
 
-        // A monthly order due immediately.
+        // Hemen vadesi gelen aylık bir emir
         Guid orderId;
         DateTimeOffset firstOccurrence;
         await using (var scope = provider.CreateAsyncScope())
@@ -45,8 +40,7 @@ public sealed class StandingOrderExecutionTests(IntegrationInfrastructure infras
             orderId = created.Value;
         }
 
-        // Read the schedule back from the database: PostgreSQL rounds to
-        // microseconds, and the run key must be computed from what is stored.
+        // Planı veritabanından geri oku: Postgres mikrosaniyeye yuvarlar, key kaydedilenden hesaplanmalı
         await using (var scope = provider.CreateAsyncScope())
         {
             var order = (await scope.ServiceProvider.GetRequiredService<IStandingOrderRepository>()
@@ -54,7 +48,7 @@ public sealed class StandingOrderExecutionTests(IntegrationInfrastructure infras
             firstOccurrence = order.NextRunAt;
         }
 
-        // First pass executes the due occurrence and advances the schedule.
+        // İlk tur vadesi geleni çalıştırır ve planı ilerletir
         (await executor.ExecuteDueOnceAsync(CancellationToken.None)).ShouldBe(1);
         (await TestBank.GetBalanceAsync(provider, destination)).ShouldBe(250m);
 
@@ -66,20 +60,17 @@ public sealed class StandingOrderExecutionTests(IntegrationInfrastructure infras
             order.NextRunAt.ShouldBe(firstOccurrence.AddMonths(1));
         }
 
-        // Nothing further is due, so a second pass moves no money.
+        // Başka vadesi gelen olmadığından ikinci tur para taşımaz
         (await executor.ExecuteDueOnceAsync(CancellationToken.None)).ShouldBe(0);
         (await TestBank.GetBalanceAsync(provider, destination)).ShouldBe(250m);
 
-        // Crash-and-rerun on the SAME occurrence: rewind the schedule to the
-        // exact time already executed, as if the executor died after the
-        // transfer but before saving RecordRun. The occurrence key is
-        // deterministic, so the replay returns the committed transaction
-        // instead of paying again.
+        // AYNI occurrence'da crash-and-rerun: executor transferden sonra ama RecordRun'dan önce ölmüş gibi
+        // planı geri sar. Key deterministik olduğundan tekrar çalıştırma para ödemez, commit edilmiş sonucu döner.
         await RewindNextRunAsync(provider, orderId, firstOccurrence);
         (await executor.ExecuteDueOnceAsync(CancellationToken.None)).ShouldBe(1);
-        (await TestBank.GetBalanceAsync(provider, destination)).ShouldBe(250m); // still exactly once
+        (await TestBank.GetBalanceAsync(provider, destination)).ShouldBe(250m); // hâlâ tam olarak bir kez
 
-        // A cancelled order is never picked up again, due or not.
+        // İptal edilmiş emir bir daha asla alınmaz
         await RewindNextRunAsync(provider, orderId, firstOccurrence);
         await using (var scope = provider.CreateAsyncScope())
         {

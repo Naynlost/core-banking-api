@@ -4,11 +4,7 @@ using FluentValidation;
 
 namespace Banking.Application.Transfers;
 
-/// <summary>
-/// Cheap shape checks before the handler spends database round-trips. The error
-/// codes mirror what the domain would answer for the same input, so rejecting
-/// early does not change the API's behavior.
-/// </summary>
+// Handler DB'ye gitmeden önce ucuz şekil kontrolleri; hata kodları domain'inkiyle aynı
 internal sealed class TransferMoneyCommandValidator : AbstractValidator<TransferMoneyCommand>
 {
     public TransferMoneyCommandValidator()

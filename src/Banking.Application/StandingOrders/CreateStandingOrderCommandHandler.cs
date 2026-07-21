@@ -34,7 +34,7 @@ internal sealed class CreateStandingOrderCommandHandler(
             return Result.Failure<Guid>(currency.Error);
         }
 
-        // Catch the obvious mismatch now; execution-time transfer rules recheck it.
+        // Bariz uyuşmazlığı burada yakala, çalışma zamanındaki transfer kuralları zaten tekrar kontrol eder
         if (currency.Value != source.Currency)
         {
             return Result.Failure<Guid>(MoneyErrors.CurrencyMismatch);
@@ -46,7 +46,7 @@ internal sealed class CreateStandingOrderCommandHandler(
             return Result.Failure<Guid>(amount.Error);
         }
 
-        // The validator already rejected unparseable frequencies.
+        // Validator zaten parse edilemeyen frekansları reddetmişti
         var frequency = Enum.Parse<StandingOrderFrequency>(command.Frequency, ignoreCase: true);
 
         var now = timeProvider.GetUtcNow();

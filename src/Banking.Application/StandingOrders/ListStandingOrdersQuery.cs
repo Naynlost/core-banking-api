@@ -4,7 +4,7 @@ using Banking.Domain.Primitives;
 
 namespace Banking.Application.StandingOrders;
 
-/// <summary>All standing orders of the requester, active ones first, then newest first.</summary>
+// Önce aktif olanlar, sonra en yeni önce sıralanır
 public sealed record ListStandingOrdersQuery(string Requester) : IQuery<IReadOnlyList<StandingOrderResponse>>;
 
 public sealed record StandingOrderResponse(

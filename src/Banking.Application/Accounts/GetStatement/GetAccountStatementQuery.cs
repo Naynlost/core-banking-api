@@ -2,10 +2,7 @@ using Banking.Application.Messaging;
 
 namespace Banking.Application.Accounts.GetStatement;
 
-/// <summary>
-/// One page of the account's ledger entries, newest first. Same ownership rule
-/// as GetAccount: a foreign account is reported as not found.
-/// </summary>
+// En yeni önce; GetAccount'taki gibi başkasının hesabı 404 döner
 public sealed record GetAccountStatementQuery(
     Guid AccountId,
     string Requester,
@@ -18,7 +15,7 @@ public sealed record AccountStatementResponse(
     int PageSize,
     int TotalCount);
 
-/// <summary>For a customer account a credit is money in, a debit is money out.</summary>
+// Müşteri hesabında credit para girişi, debit para çıkışıdır
 public sealed record StatementEntryResponse(
     Guid TransactionId,
     string Description,

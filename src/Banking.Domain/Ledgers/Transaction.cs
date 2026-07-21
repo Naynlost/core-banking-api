@@ -4,20 +4,14 @@ using Banking.Domain.ValueObjects;
 
 namespace Banking.Domain.Ledgers;
 
-/// <summary>
-/// One leg of a transaction before it becomes an immutable ledger entry.
-/// </summary>
 public readonly record struct EntrySpec(AccountId AccountId, Money Amount, EntryDirection Direction);
 
-/// <summary>
-/// A financial transaction: at least two ledger entries in the same currency,
-/// with total debits equal to total credits (the double-entry invariant).
-/// </summary>
+// En az iki satır, toplam borç toplam alacağa eşit (double-entry invariantı)
 public sealed class Transaction
 {
     private readonly List<LedgerEntry> _entries;
 
-    // For EF materialization only; the data was validated when it was written.
+    // EF'in nesne oluşturması için, veri yazılırken zaten doğrulanmıştı
     private Transaction()
     {
         _entries = [];
@@ -44,7 +38,6 @@ public sealed class Transaction
 
     public DateTimeOffset OccurredAt { get; }
 
-    /// <summary>Set when this transaction is the reversal of another one.</summary>
     public TransactionId? ReversesTransactionId { get; }
 
     public IReadOnlyList<LedgerEntry> Entries => _entries;

@@ -11,12 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Banking.Application.Transfers;
 
-/// <summary>
-/// Ledger entries are append-only, so two concurrent transfers never collide on
-/// data; the conflict comes from both bumping the accounts' Version concurrency
-/// token. Retries, idempotency replay and the concurrent same-key race are
-/// handled by <see cref="IdempotentMovement"/>.
-/// </summary>
+// Ledger append-only olduğundan veri çakışmaz, çakışma iki tarafın da Version'ı artırmasından gelir
 internal sealed class TransferMoneyCommandHandler(
     IServiceScopeFactory scopeFactory,
     TimeProvider timeProvider) : ICommandHandler<TransferMoneyCommand, Guid>

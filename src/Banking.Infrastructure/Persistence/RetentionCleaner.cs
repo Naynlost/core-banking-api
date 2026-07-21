@@ -12,24 +12,15 @@ public sealed class RetentionOptions
 {
     public const string SectionName = "Retention";
 
-    /// <summary>How long published outbox rows and consumer inbox rows are kept.</summary>
     public int MessagingDays { get; init; } = 7;
 
-    /// <summary>
-    /// How long idempotency keys are kept. After this window the same key would
-    /// execute again, so it must comfortably exceed any realistic client retry.
-    /// </summary>
+    // Bu sürenin sonunda aynı key tekrar çalışabilir, gerçekçi client retry'sini rahatça aşmalı
     public int IdempotencyHours { get; init; } = 24;
 
     public TimeSpan Interval { get; init; } = TimeSpan.FromHours(1);
 }
 
-/// <summary>
-/// The outbox, inbox and idempotency tables only ever grow; this service
-/// periodically deletes rows that no longer serve their purpose (published
-/// events, old dedupe marks, expired idempotency keys). Unpublished outbox rows
-/// are never touched.
-/// </summary>
+// Outbox/inbox/idempotency tabloları sadece büyür; süresi geçmiş satırları periyodik siler. Bekleyen outbox asla silinmez.
 internal sealed class RetentionCleaner(
     IServiceScopeFactory scopeFactory,
     IOptions<RetentionOptions> options,

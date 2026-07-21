@@ -7,12 +7,7 @@ using Shouldly;
 
 namespace Banking.Api.IntegrationTests.Persistence;
 
-/// <summary>
-/// The account_balances read model against real PostgreSQL: it is written in
-/// the same transaction as every ledger write, so after any mix of operations
-/// it must agree exactly with totals summed from the ledger itself — and the
-/// account queries read the projection.
-/// </summary>
+// account_balances projeksiyonu, ledger'dan toplanan gerçek değerlerle her zaman aynı olmalı
 [Collection(IntegrationCollection.Name)]
 public sealed class BalanceProjectionTests(IntegrationInfrastructure infrastructure)
 {
@@ -34,7 +29,7 @@ public sealed class BalanceProjectionTests(IntegrationInfrastructure infrastruct
             reversal.IsSuccess.ShouldBeTrue(reversal.IsFailure ? reversal.Error : string.Empty);
         }
 
-        // Projection totals equal the authoritative SUM over ledger_entries.
+        // Projeksiyon toplamları ledger_entries üzerindeki gerçek SUM ile eşit olmalı
         await using (var scope = provider.CreateAsyncScope())
         {
             var projection = scope.ServiceProvider.GetRequiredService<IBalanceProjection>();
@@ -48,7 +43,7 @@ public sealed class BalanceProjectionTests(IntegrationInfrastructure infrastruct
             }
         }
 
-        // The account query serves the projected balance: back to the funded 1.000.
+        // Hesap sorgusu projeksiyondaki bakiyeyi döner: fonlanan 1.000'e geri dönmüş olmalı
         await using (var scope = provider.CreateAsyncScope())
         {
             var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();

@@ -102,6 +102,17 @@ dispatcher'ımız, neden outbox, optimistic vs. pessimistic locking vb.)
 
 Gereksinimler: .NET 10 SDK, Docker.
 
+### Tek komutla (yalnızca Docker gerekir)
+
+```bash
+docker compose --profile full up -d
+```
+
+API dahil tüm sistemi ayağa kaldırır: şemayı kendi uygular ve `http://localhost:5000`
+adresinden yanıt verir. Denemek için aşağıdaki "Örnek kullanım" adımlarını izleyebilirsin.
+
+### Geliştirme için (API host'ta çalışır)
+
 ```bash
 # 1) Altyapı: PostgreSQL, RabbitMQ, Prometheus, Grafana, Jaeger
 docker compose up -d
@@ -171,7 +182,7 @@ docker build -t banking-api .
 dotnet test
 ```
 
-Test paketi dört katmandan oluşur (173 test):
+Test paketi dört katmandan oluşur (178 test):
 
 - **Domain birim testleri:** Defter kuralları — dengeli kayıt, yetersiz bakiye, kapalı hesap,
   para birimi uyuşmazlığı, günlük limit, KYC, fraud kuralları ve çözümleme yaşam döngüsü,
@@ -191,7 +202,9 @@ Test paketi dört katmandan oluşur (173 test):
   fraud inceleme döngüsü (işaretle → listele → karara bağla), standing order'ın
   crash-and-rerun altında tam bir kez yürümesi, bakiye projeksiyonunun defterle birebir
   eşleşmesi ve kayıt → giriş → yatır → transfer → ters kayıt → kapatma akışlarının
-  tamamı doğrulanır.
+  tamamı doğrulanır. Ayrıca veritabanı hatalarının doğru sınıflandırıldığı
+  (deadlock ve serialization hatası → yeniden denenebilir çakışma; gerçek hatalar
+  olduğu gibi yukarı çıkar) ayrı ayrı test edilir.
 
 ## Performans
 
@@ -249,3 +262,7 @@ docker run --rm -i --add-host=host.docker.internal:host-gateway grafana/k6 run -
 ├── docker-compose.yml
 └── Dockerfile
 ```
+
+## Lisans
+
+[MIT](LICENSE)

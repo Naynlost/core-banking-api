@@ -8,11 +8,7 @@ using Shouldly;
 
 namespace Banking.Api.IntegrationTests.Risk;
 
-/// <summary>
-/// End-to-end fraud screening against real PostgreSQL and RabbitMQ: a transfer
-/// above the review threshold goes through the outbox to the fraud consumer,
-/// which persists a fraud alert for the transaction.
-/// </summary>
+// Eşik üstü transfer outbox üzerinden fraud consumer'a ulaşır ve alert kaydeder
 [Collection(IntegrationCollection.Name)]
 public sealed class FraudScreeningTests(IntegrationInfrastructure infrastructure)
 {
@@ -20,7 +16,7 @@ public sealed class FraudScreeningTests(IntegrationInfrastructure infrastructure
     public async Task TransferAboveReviewThreshold_IsFlaggedByTheFraudConsumer()
     {
         await using var provider = await IntegrationTestServices.CreateProviderAsync(infrastructure);
-        // 15.000: above the 10.000 review threshold, still within the 20.000 daily limit.
+        // 15.000: 10.000 eşiğinin üstünde ama 20.000 günlük limitin altında
         var source = await TestBank.CreateAccountAsync(provider, "user-a", fundedWith: 16_000m);
         var destination = await TestBank.CreateAccountAsync(provider, "user-b");
 
@@ -46,7 +42,7 @@ public sealed class FraudScreeningTests(IntegrationInfrastructure infrastructure
                 },
                 $"a fraud alert for transaction {transactionId}");
 
-            // The transfer itself went through — screening flags, it does not block.
+            // Transfer normal şekilde geçti; tarama işaretler, engellemez
             (await TestBank.GetBalanceAsync(provider, destination)).ShouldBe(15_000m);
         }
         finally

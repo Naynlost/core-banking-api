@@ -3,11 +3,7 @@ using Banking.Domain.ValueObjects;
 
 namespace Banking.Domain.Ledgers;
 
-/// <summary>
-/// The sign rule for turning entry totals into a balance: assets grow with
-/// debits, liabilities with credits. Kept in one place so the in-memory ledger
-/// and the persistence layer can't drift apart.
-/// </summary>
+// Asset hesap debit ile, liability hesap credit ile büyür; kural burada tek yerde tutulur
 public static class LedgerMath
 {
     public static Money Balance(Account account, decimal totalDebits, decimal totalCredits)
@@ -16,8 +12,7 @@ public static class LedgerMath
             ? totalDebits - totalCredits
             : totalCredits - totalDebits;
 
-        // The movement rules should make a negative balance impossible. If net
-        // is negative something is broken, and Money.Create will fail loudly.
+        // Negatif bakiye normalde imkansız olmalı, olursa Money.Create hata fırlatır
         return Money.Create(net, account.Currency).Value;
     }
 }

@@ -2,20 +2,14 @@ using RabbitMQ.Client;
 
 namespace Banking.Infrastructure.Messaging;
 
-/// <summary>
-/// Single place that names the broker topology. Declarations are idempotent,
-/// so publisher and consumers can each declare what they use and survive
-/// starting in any order. Every consumer queue dead-letters into a shared
-/// dead-letter queue, so a poison message is parked for inspection instead of
-/// being lost or looping forever.
-/// </summary>
+// Deklarasyonlar idempotent, publisher/consumer'lar hangi sırayla başlarsa başlasın çalışır
 internal static class MessageTopology
 {
     public const string Exchange = "banking.events";
 
     public const string DeadLetterExchange = "banking.dlx";
 
-    /// <summary>All dead letters land here; the original queue name is the routing key.</summary>
+    // Tüm poison mesajlar buraya düşer, orijinal kuyruk adı routing key olur
     public const string DeadLetterQueue = "banking.dead-letters";
 
     public const string MoneyTransferredRoutingKey = "money.transferred";

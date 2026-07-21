@@ -2,11 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Banking.Api.Extensions;
 
-/// <summary>
-/// Maps failed <see cref="Banking.Domain.Primitives.Result"/> error codes to HTTP
-/// problem responses: business rule violations are expected outcomes, not exceptions,
-/// so they surface as 4xx ProblemDetails with the machine-readable code attached.
-/// </summary>
+// Başarısız Result hata kodlarını 4xx ProblemDetails'e çevirir, kod extension'da tutulur
 public static class ResultExtensions
 {
     public static IActionResult FailureProblem(this ControllerBase controller, string errorCode)

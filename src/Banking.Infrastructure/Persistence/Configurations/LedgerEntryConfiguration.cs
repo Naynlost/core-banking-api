@@ -26,11 +26,10 @@ internal sealed class LedgerEntryConfiguration : IEntityTypeConfiguration<Ledger
             .HasConversion<string>()
             .HasMaxLength(8);
 
-        // Get-only properties are not discovered by convention; map explicitly.
+        // Get-only property, convention ile keşfedilmez; elle map edilir
         builder.Property(e => e.OccurredAt);
 
-        // Money opens up into two columns: a single-column converter would lose
-        // either the amount or the currency, and amounts must stay summable in SQL.
+        // Money iki koloma açılır; tek kolonluk converter tutarın veya para biriminin kaybolmasına yol açardı
         builder.ComplexProperty(e => e.Amount, money =>
         {
             money.Property(m => m.Amount)

@@ -3,16 +3,11 @@ using Banking.Domain.ValueObjects;
 
 namespace Banking.Domain.Accounts;
 
-/// <summary>
-/// A bank account. Note there is no balance field on purpose: the balance is
-/// always calculated from the ledger entries posted against the account.
-/// </summary>
+// Bilerek balance alanı yok, bakiye her zaman ledger kayıtlarından hesaplanır
 public sealed class Account
 {
-    /// <summary>Default daily transfer cap for customer accounts, in the account's own currency (per UTC day).</summary>
     public const decimal DefaultDailyTransferLimit = 20_000m;
 
-    /// <summary>Owner name of the bank's own cash accounts.</summary>
     public const string SystemOwner = "SYSTEM";
 
     private Account(
@@ -39,25 +34,18 @@ public sealed class Account
 
     public KycStatus KycStatus { get; private set; }
 
-    /// <summary>How much the account can send by transfer per UTC day, in its own currency.</summary>
     public decimal DailyTransferLimit { get; }
 
     public bool IsClosed => Status == AccountStatus.Closed;
 
     public bool IsKycVerified => KycStatus == KycStatus.Verified;
 
-    /// <summary>
-    /// Counts state changes on this account. Ledger entries are append-only, so
-    /// two concurrent movements would never conflict on their own; bumping this
-    /// counter on every movement is what makes them conflict (it's the optimistic
-    /// concurrency token).
-    /// </summary>
+    // Ledger append-only olduğundan eş zamanlı hareketler kendiliğinden çakışmaz,
+    // bu sayaç her harekette artarak optimistic locking token'ı görevi görür
     public long Version { get; private set; }
 
-    /// <summary>Call this once for every movement posted against the account.</summary>
     public void RecordMovement() => Version++;
 
-    /// <summary>Opens a customer deposit account (a liability from the bank's point of view). KYC starts as Pending.</summary>
     public static Result<Account> Open(string owner, Currency currency)
     {
         if (string.IsNullOrWhiteSpace(owner))
@@ -69,7 +57,6 @@ public sealed class Account
             AccountId.New(), owner.Trim(), currency, AccountType.Liability, AccountStatus.Active, KycStatus.Pending));
     }
 
-    /// <summary>Opens the bank's own cash account (asset side) for a currency. KYC doesn't apply here.</summary>
     public static Account OpenCash(Currency currency) =>
         new(AccountId.New(), SystemOwner, currency, AccountType.Asset, AccountStatus.Active, KycStatus.Verified);
 
@@ -111,6 +98,5 @@ public static class AccountErrors
     public const string KycNotVerified = "account.kyc_not_verified";
     public const string KycAlreadyVerified = "account.kyc_already_verified";
 
-    /// <summary>An account can only be closed once its ledger balance is zero.</summary>
     public const string BalanceMustBeZero = "account.balance_must_be_zero";
 }

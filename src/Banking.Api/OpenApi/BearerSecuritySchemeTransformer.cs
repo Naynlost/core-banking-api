@@ -5,10 +5,7 @@ using Microsoft.OpenApi;
 
 namespace Banking.Api.OpenApi;
 
-/// <summary>
-/// Advertises the JWT bearer scheme in the OpenAPI document so Scalar renders
-/// an authentication input and sends the token with try-it-out requests.
-/// </summary>
+// JWT bearer şemasını OpenAPI dokümanına ekler, Scalar'da try-it-out token gönderebilsin diye
 internal sealed class BearerSecuritySchemeTransformer(
     IAuthenticationSchemeProvider authenticationSchemeProvider) : IOpenApiDocumentTransformer
 {

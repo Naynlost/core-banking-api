@@ -2,11 +2,7 @@ using Banking.Application.Messaging;
 
 namespace Banking.Application.StandingOrders;
 
-/// <summary>
-/// Sets up a recurring transfer owned by the requester. FirstRunAt defaults to
-/// "now": the first occurrence executes on the next executor pass. Returns the
-/// standing order id.
-/// </summary>
+// FirstRunAt varsayılan "şimdi": ilk tekrar bir sonraki executor turunda çalışır
 public sealed record CreateStandingOrderCommand(
     string Requester,
     Guid SourceAccountId,

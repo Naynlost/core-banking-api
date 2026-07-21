@@ -17,15 +17,8 @@ public sealed class StandingOrderOptions
     public int BatchSize { get; init; } = 20;
 }
 
-/// <summary>
-/// Executes due standing orders as regular transfers. Each occurrence uses the
-/// order's deterministic idempotency key, so a crash between the transfer and
-/// the schedule update is safe: the rerun replays the same key and gets the
-/// already-committed transaction back instead of paying twice. A failed
-/// occurrence (insufficient funds, closed account, ...) is recorded on the
-/// order and the schedule advances — a missed payment is visible, not retried
-/// forever.
-/// </summary>
+// Deterministik idempotency key'i sayesinde transfer-plan güncelleme arası çökme güvenli: tekrar çalıştırma
+// aynı key'le zaten commit edilmiş sonucu döner, çift ödeme olmaz
 internal sealed class StandingOrderExecutor(
     IServiceScopeFactory scopeFactory,
     IOptions<StandingOrderOptions> options,
@@ -65,7 +58,7 @@ internal sealed class StandingOrderExecutor(
 
         foreach (var order in due)
         {
-            // The key is read BEFORE RecordRun advances the schedule.
+            // Key, RecordRun planı ilerletmeden ÖNCE okunur
             var command = new TransferMoneyCommand(
                 order.CurrentRunKey,
                 order.Owner,

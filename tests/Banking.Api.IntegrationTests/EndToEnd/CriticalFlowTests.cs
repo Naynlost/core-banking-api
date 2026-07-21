@@ -14,12 +14,7 @@ using Shouldly;
 
 namespace Banking.Api.IntegrationTests.EndToEnd;
 
-/// <summary>
-/// The critical path through the REAL HTTP pipeline: register → login →
-/// open accounts → complete KYC → transfer → the event leaves through the
-/// outbox and BOTH consumers process it. Runs against the API host with its
-/// hosted services live, on Testcontainers infrastructure.
-/// </summary>
+// Gerçek HTTP pipeline üzerinden kritik akış: kayıt→giriş→hesap→KYC→transfer→outbox→iki consumer
 [Collection(IntegrationCollection.Name)]
 public sealed class CriticalFlowTests(IntegrationInfrastructure infrastructure) : IAsyncLifetime
 {
@@ -95,7 +90,7 @@ public sealed class CriticalFlowTests(IntegrationInfrastructure infrastructure) 
         return (await response.Content.ReadFromJsonAsync<CreateAccountResponse>()).ShouldNotBeNull().Id;
     }
 
-    /// <summary>Books a real deposit (balanced, against a cash account) for an API-created account.</summary>
+    // API ile açılan hesap için kasaya karşı dengeli gerçek bir deposit kaydeder
     private async Task FundAsync(Guid accountId, decimal amount)
     {
         await using var scope = _factory.Services.CreateAsyncScope();
@@ -131,7 +126,7 @@ public sealed class CriticalFlowTests(IntegrationInfrastructure infrastructure) 
             {
                 await using var scope = _factory.Services.CreateAsyncScope();
                 var context = scope.ServiceProvider.GetRequiredService<BankingDbContext>();
-                // Payload is jsonb; match it client-side instead of in SQL.
+                // Payload jsonb, SQL yerine istemci tarafında eşleştir
                 var candidates = await context.Set<OutboxMessage>()
                     .Where(m => m.ProcessedAt != null)
                     .ToListAsync();

@@ -43,10 +43,7 @@ public sealed class AccountsController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : this.FailureProblem(result.Error);
     }
 
-    /// <summary>
-    /// Marks the caller's account as KYC-verified. Stands in for a real
-    /// verification flow; without it the account cannot send transfers.
-    /// </summary>
+    // KYC doğrulanmadan hesap transfer gönderemez
     [HttpPost("{id:guid}/kyc")]
     public async Task<IActionResult> CompleteKyc(Guid id, CancellationToken cancellationToken)
     {
@@ -63,7 +60,7 @@ public sealed class AccountsController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : this.FailureProblem(result.Error);
     }
 
-    /// <summary>The account's ledger entries, newest first.</summary>
+    // En yeni kayıt önce
     [HttpGet("{id:guid}/transactions")]
     public async Task<IActionResult> GetStatement(
         Guid id,
@@ -119,7 +116,7 @@ public sealed class AccountsController(IDispatcher dispatcher) : ControllerBase
             : this.FailureProblem(result.Error);
     }
 
-    /// <summary>Closes the account; only possible once its balance is zero.</summary>
+    // Bakiye sıfır değilse kapatma reddedilir
     [HttpPost("{id:guid}/close")]
     public async Task<IActionResult> Close(Guid id, CancellationToken cancellationToken)
     {

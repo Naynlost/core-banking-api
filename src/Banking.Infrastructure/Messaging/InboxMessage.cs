@@ -1,10 +1,6 @@
 namespace Banking.Infrastructure.Messaging;
 
-/// <summary>
-/// Records that a consumer already processed a message. The broker delivers
-/// at least once (the publisher may crash between publish and mark-processed),
-/// so consumers check this table to make reprocessing a no-op.
-/// </summary>
+// Consumer'ın bir mesajı işlediğini kaydeder; broker en az bir kez teslim ettiğinden tekrar işleme no-op olur
 public sealed class InboxMessage
 {
     public required string Consumer { get; init; }

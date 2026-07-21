@@ -9,16 +9,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Banking.Api.IntegrationTests;
 
-/// <summary>Shared account and transfer plumbing for integration tests.</summary>
 internal static class TestBank
 {
     private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(60);
 
-    /// <summary>
-    /// Opens an account (KYC verified by default so it can send transfers).
-    /// Funding happens like a real deposit: a balanced transaction against a
-    /// cash account.
-    /// </summary>
+    // Varsayılan KYC verified açılır; fonlama gerçek bir deposit gibi kasaya karşı dengeli işlem olur
     public static async Task<Account> CreateAccountAsync(
         IServiceProvider provider, string owner, decimal fundedWith = 0m, bool kycVerified = true)
     {
@@ -58,7 +53,7 @@ internal static class TestBank
         return account;
     }
 
-    /// <summary>Transfers with a fresh idempotency key; use SendAsync for replay scenarios.</summary>
+    // Taze idempotency key ile transfer eder; replay senaryoları için SendAsync kullan
     public static async Task<Result<Guid>> TransferAsync(
         IServiceProvider provider, Account source, Account destination, decimal amount) =>
         await SendAsync(provider, new TransferMoneyCommand(
@@ -79,7 +74,7 @@ internal static class TestBank
         return LedgerMath.Balance(account, totals.Debits, totals.Credits).Amount;
     }
 
-    /// <summary>Polls until the condition holds; throws after 60 seconds.</summary>
+    // Koşul sağlanana kadar poll eder, 60 saniye sonra hata fırlatır
     public static async Task WaitUntilAsync(Func<Task<bool>> condition, string description)
     {
         var deadline = DateTimeOffset.UtcNow + WaitTimeout;

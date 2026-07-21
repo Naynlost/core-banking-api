@@ -12,13 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Banking.Infrastructure.Messaging.Consumers;
 
-/// <summary>
-/// Screens committed transfers against <see cref="FraudPolicy"/>: it gathers
-/// the ledger-derived inputs (transfer count in the velocity window), lets the
-/// domain rules decide, and persists a <see cref="FraudAlert"/> per matched
-/// rule. Screening happens after the fact — a flagged transfer is review work,
-/// not a rollback.
-/// </summary>
+// Onaylanmış transferleri FraudPolicy'ye karşı tarar, eşleşen her kural için FraudAlert kaydeder
 internal sealed class FraudScreeningConsumer(
     RabbitMqConnectionProvider connections,
     IServiceScopeFactory scopeFactory,
@@ -42,8 +36,7 @@ internal sealed class FraudScreeningConsumer(
         await using var scope = _scopeFactory.CreateAsyncScope();
         var transactions = scope.ServiceProvider.GetRequiredService<ITransactionRepository>();
 
-        // The window ends at the screened transfer (inclusive), so redeliveries
-        // and late processing see the same count and reach the same verdict.
+        // Pencere taranan transferde (dahil) biter, böylece tekrar teslimat da aynı sonuca ulaşır
         var transfersInWindow = await transactions.CountTransfersAsync(
             new AccountId(transfer.SourceAccountId),
             transfer.OccurredAt - FraudPolicy.VelocityWindow,
@@ -79,7 +72,7 @@ internal sealed class FraudScreeningConsumer(
         catch (DbUpdateException exception)
             when (exception.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
         {
-            // A redelivery already recorded these alerts; the verdict stands.
+            // Bir önceki teslimat bu uyarıları zaten kaydetmiş, karar geçerli
         }
     }
 }

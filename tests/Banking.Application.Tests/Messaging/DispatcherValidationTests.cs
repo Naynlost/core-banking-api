@@ -7,11 +7,7 @@ using Shouldly;
 
 namespace Banking.Application.Tests.Messaging;
 
-/// <summary>
-/// The dispatcher runs validators before resolving the handler: no repository
-/// or unit of work is registered here, so reaching a handler would throw —
-/// getting a failed Result back proves the message was rejected up front.
-/// </summary>
+// Repository/UnitOfWork kayıtlı değil; başarısız Result dönmesi mesajın handler'a hiç ulaşmadığını kanıtlar
 public class DispatcherValidationTests
 {
     private readonly IDispatcher _dispatcher;

@@ -9,13 +9,7 @@ using RabbitMQ.Client;
 
 namespace Banking.Infrastructure.Messaging;
 
-/// <summary>
-/// Polls the outbox and pushes pending events to the broker with publisher
-/// confirms. A row is marked processed only after the broker confirmed it, so a
-/// crash anywhere in between means the row stays pending and is retried — the
-/// event is delivered at least once, never lost. Duplicates are the consumers'
-/// inbox's problem.
-/// </summary>
+// Broker onayından sonra işaretlenir; aradaki bir çökme satırı bekleyen halde bırakır, kayıp olmaz
 internal sealed class OutboxPublisher(
     IServiceScopeFactory scopeFactory,
     RabbitMqConnectionProvider connections,
@@ -77,8 +71,7 @@ internal sealed class OutboxPublisher(
 
         foreach (var message in pending)
         {
-            // The publish span joins the trace that raised the event, so the
-            // asynchronous hop stays on the same end-to-end trace.
+            // Publish span'i olayı yaratan trace'e katılır
             using var activity = MessagingDiagnostics.ActivitySource.StartActivity(
                 $"publish {message.Type}",
                 ActivityKind.Producer,

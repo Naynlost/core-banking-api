@@ -1,12 +1,8 @@
 namespace Banking.Application.Fraud;
 
-/// <summary>
-/// The fraud review flow is a back-office concern: it is gated by a role, not
-/// by account ownership like the customer endpoints.
-/// </summary>
+// Müşteri endpoint'lerinden farklı olarak hesap sahipliği değil, rol bazlı yetkilendirilir
 public static class FraudReview
 {
-    /// <summary>JWT role required to list and resolve fraud alerts.</summary>
     public const string ReviewerRole = "fraud-reviewer";
 }
 

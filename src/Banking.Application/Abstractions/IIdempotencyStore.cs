@@ -1,12 +1,6 @@
 namespace Banking.Application.Abstractions;
 
-/// <summary>
-/// One row per successfully executed idempotent operation, keyed per user.
-/// The record is inserted in the same database transaction as the operation's
-/// effects, so the unique key makes double-execution impossible even when the
-/// same key arrives concurrently: the second insert violates the key and rolls
-/// its whole transaction back.
-/// </summary>
+// Kullanıcı bazlı benzersiz key, işlemle aynı transaction'da yazılır; eş zamanlı aynı key ikinci insert'i düşürür
 public sealed record IdempotencyRecord(
     string Key,
     string UserId,
@@ -17,6 +11,6 @@ public interface IIdempotencyStore
 {
     Task<IdempotencyRecord?> GetAsync(string key, string userId, CancellationToken cancellationToken);
 
-    /// <summary>Stages the record; it is persisted by the unit of work together with the operation.</summary>
+    // Kayıt burada sadece hazırlanır, UnitOfWork ile işlemle birlikte kalıcı olur
     Task AddAsync(IdempotencyRecord record, CancellationToken cancellationToken);
 }

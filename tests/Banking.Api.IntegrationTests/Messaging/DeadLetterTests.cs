@@ -7,11 +7,7 @@ using Shouldly;
 
 namespace Banking.Api.IntegrationTests.Messaging;
 
-/// <summary>
-/// A message that keeps failing (poison) must not loop forever and must not be
-/// lost: after the single requeue attempt the consumer rejects it and the broker
-/// dead-letters it into banking.dead-letters, where it waits for inspection.
-/// </summary>
+// Sürekli başarısız (poison) mesaj sonsuz döngüye girmez: tek requeue'dan sonra dead-letter'a düşer
 [Collection(IntegrationCollection.Name)]
 public sealed class DeadLetterTests(IntegrationInfrastructure infrastructure)
 {
@@ -32,8 +28,7 @@ public sealed class DeadLetterTests(IntegrationInfrastructure infrastructure)
             await using var channel = await connection.CreateChannelAsync();
             await MessageTopology.DeclareExchangeAsync(channel, CancellationToken.None);
 
-            // Claims to be MoneyTransferred but the payload cannot be deserialized,
-            // so every consumer fails on every attempt.
+            // MoneyTransferred gibi görünür ama payload deserialize edilemez, her consumer her denemede başarısız olur
             var messageId = Guid.NewGuid();
             await channel.BasicPublishAsync(
                 MessageTopology.Exchange,

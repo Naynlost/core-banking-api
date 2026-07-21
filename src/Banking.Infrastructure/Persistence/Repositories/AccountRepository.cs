@@ -17,8 +17,7 @@ internal sealed class AccountRepository(BankingDbContext context) : IAccountRepo
             .ToListAsync(cancellationToken);
 
     public async Task<Account?> GetCashAccountAsync(Currency currency, CancellationToken cancellationToken) =>
-        // FirstOrDefault, not Single: a concurrent first movement in a currency
-        // can create a second cash account; picking a stable one is enough.
+        // Single değil FirstOrDefault: eş zamanlı ilk hareket ikinci bir kasa hesabı yaratabilir
         await context.Accounts
             .Where(a => a.Owner == Account.SystemOwner
                 && a.Type == AccountType.Asset

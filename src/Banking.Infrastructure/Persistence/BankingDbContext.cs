@@ -23,11 +23,7 @@ public sealed class BankingDbContext(DbContextOptions<BankingDbContext> options,
 
     internal DbSet<AccountBalance> AccountBalances => Set<AccountBalance>();
 
-    /// <summary>
-    /// Every save that posts ledger entries also folds them into the
-    /// account_balances read model — one transaction, so the projection can
-    /// never lag or diverge from the ledger it is derived from.
-    /// </summary>
+    // Ledger yazan her save, aynı transaction'da account_balances'ı da günceller; projeksiyon asla geride kalmaz
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         await ProjectNewLedgerEntriesAsync(cancellationToken);

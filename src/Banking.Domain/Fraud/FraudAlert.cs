@@ -9,14 +9,10 @@ public static class FraudAlertErrors
     public const string InvalidResolution = "fraud_alert.invalid_resolution";
 }
 
-/// <summary>
-/// Records that a committed transaction looked suspicious: which rule matched
-/// and why. The ledger itself is left alone; an alert is a work item for
-/// review, not a financial record.
-/// </summary>
+// Şüpheli işlemi işaretler, ledger'a dokunmaz; inceleme için bir kayıttır
 public sealed class FraudAlert
 {
-    // For EF materialization only; the data was validated when it was written.
+    // EF'in nesne oluşturması için, veri yazılırken zaten doğrulanmıştı
     private FraudAlert()
     {
         Rule = null!;
@@ -51,11 +47,7 @@ public sealed class FraudAlert
     public static FraudAlert Raise(TransactionId transactionId, FraudFlag flag, DateTimeOffset flaggedAt) =>
         new(Guid.NewGuid(), transactionId, flag.Rule, flag.Detail, flaggedAt);
 
-    /// <summary>
-    /// Closes the review: the alert is either confirmed fraud or a dismissed
-    /// false positive. An alert is resolved exactly once; the verdict on record
-    /// cannot be changed afterwards.
-    /// </summary>
+    // İnceleme tek seferde kapanır, karar sonradan değiştirilemez
     public Result Resolve(FraudAlertStatus resolution, string? note, DateTimeOffset resolvedAt)
     {
         if (resolution == FraudAlertStatus.Open)

@@ -30,11 +30,7 @@ internal sealed class WithdrawMoneyCommandHandler(
             command.AccountId, command.Amount, command.CurrencyCode, cancellationToken);
 }
 
-/// <summary>
-/// Deposit and withdrawal differ only in the direction of the booking, so both
-/// handlers share this core. The counter-leg is the bank's cash account for the
-/// currency, created on first use.
-/// </summary>
+// Yatırma/çekme sadece yön bakımından farklı, ikisi de bu ortak çekirdeği kullanır
 internal static class CashMovement
 {
     public static async Task<Result<Guid>> ExecuteAsync(
@@ -101,8 +97,7 @@ internal static class CashMovement
         var cash = await accounts.GetCashAccountAsync(currency.Value, cancellationToken);
         if (cash is null)
         {
-            // A concurrent first movement in this currency could create a second
-            // cash account; the ledger stays balanced either way, both are the bank's.
+            // Eş zamanlı ilk hareket ikinci bir kasa hesabı oluşturabilir, ikisi de bankaya ait olduğundan sorun olmaz
             cash = Account.OpenCash(currency.Value);
             await accounts.AddAsync(cash, cancellationToken);
         }

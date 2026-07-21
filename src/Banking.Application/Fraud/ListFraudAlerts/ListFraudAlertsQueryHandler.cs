@@ -11,7 +11,7 @@ internal sealed class ListFraudAlertsQueryHandler(IFraudAlertRepository alerts)
     public async Task<Result<FraudAlertListResponse>> HandleAsync(
         ListFraudAlertsQuery query, CancellationToken cancellationToken)
     {
-        // The validator already rejected unparseable filters.
+        // Validator zaten parse edilemeyen filtreleri reddetmişti
         FraudAlertStatus? status = string.IsNullOrWhiteSpace(query.Status)
             ? null
             : Enum.Parse<FraudAlertStatus>(query.Status, ignoreCase: true);

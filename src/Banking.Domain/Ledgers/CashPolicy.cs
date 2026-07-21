@@ -4,13 +4,7 @@ using Banking.Domain.ValueObjects;
 
 namespace Banking.Domain.Ledgers;
 
-/// <summary>
-/// The rules for cash movements between a customer account and the bank's own
-/// cash account: deposits and withdrawals. Like transfers, the caller supplies
-/// the balance (it comes from the ledger); on success a balanced double-entry
-/// transaction comes back. KYC is not required here — it only gates sending
-/// transfers.
-/// </summary>
+// Yatırma/çekme, müşteri hesabı ile banka kasa hesabı arasında double-entry yapılır; KYC burada aranmaz
 public static class CashPolicy
 {
     public const string DepositDescription = "Deposit";

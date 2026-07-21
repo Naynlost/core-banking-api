@@ -35,12 +35,10 @@ internal sealed class FraudAlertConfiguration : IEntityTypeConfiguration<FraudAl
         builder.Property(a => a.ResolutionNote)
             .HasMaxLength(500);
 
-        // At-least-once delivery may screen the same transfer twice; one alert
-        // per (transaction, rule) keeps redeliveries from piling up duplicates.
+        // At-least-once teslimat aynı transferi iki kez tarayabilir, unique index tekrar teslimatları engeller
         builder.HasIndex(a => new { a.TransactionId, a.Rule })
             .IsUnique();
 
-        // Reviewers work off the open queue; the status filter is indexed for it.
         builder.HasIndex(a => a.Status);
     }
 }

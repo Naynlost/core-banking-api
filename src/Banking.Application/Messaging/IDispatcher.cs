@@ -2,10 +2,7 @@ using Banking.Domain.Primitives;
 
 namespace Banking.Application.Messaging;
 
-/// <summary>
-/// Routes commands and queries to their single registered handler.
-/// The application's in-process replacement for a mediator library.
-/// </summary>
+// Mediator kütüphanesi yerine kullanılan, süreç içi kendi dispatcher'ımız
 public interface IDispatcher
 {
     Task<Result> SendAsync(ICommand command, CancellationToken cancellationToken);

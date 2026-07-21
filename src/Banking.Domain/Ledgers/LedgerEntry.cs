@@ -3,14 +3,10 @@ using Banking.Domain.ValueObjects;
 
 namespace Banking.Domain.Ledgers;
 
-/// <summary>
-/// One immutable line in the ledger: an account gets debited or credited by a
-/// positive amount as part of a transaction. Entries are never updated or
-/// deleted; if something went wrong, post a reversal.
-/// </summary>
+// Değişmez satır; hata olursa güncelleme değil, ters kayıt (reversal) atılır
 public sealed record LedgerEntry
 {
-    // For EF materialization only; the data was validated when it was written.
+    // EF'in nesne oluşturması için, veri yazılırken zaten doğrulanmıştı
     private LedgerEntry()
     {
         Amount = null!;
@@ -38,15 +34,14 @@ public sealed record LedgerEntry
 
     public AccountId AccountId { get; }
 
-    /// <summary>Always positive; <see cref="Direction"/> carries the sign.</summary>
+    // Her zaman pozitif; yönü (borç/alacak) Direction belirler
     public Money Amount { get; }
 
     public EntryDirection Direction { get; }
 
     public DateTimeOffset OccurredAt { get; }
 
-    // Internal on purpose: entries are only created via Transaction.Create,
-    // so an entry can't exist outside a balanced transaction.
+    // Internal: satır sadece Transaction.Create üzerinden, dengeli bir işlemin parçası olarak oluşur
     internal static LedgerEntry Create(
         TransactionId transactionId,
         AccountId accountId,

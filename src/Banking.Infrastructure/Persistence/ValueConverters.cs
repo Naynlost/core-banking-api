@@ -5,11 +5,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Banking.Infrastructure.Persistence;
 
-/// <summary>
-/// Converters between domain value objects and their database primitives.
-/// Reading trusts the database: values were validated by the domain when written,
-/// so materialization goes through the factory and unwraps the result directly.
-/// </summary>
+// Okuma veritabanına güvenir: değerler yazılırken domain'de zaten doğrulanmıştı
 internal static class ValueConverters
 {
     public static readonly ValueConverter<AccountId, Guid> AccountId =

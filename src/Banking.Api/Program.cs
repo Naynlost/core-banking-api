@@ -4,8 +4,10 @@ using Banking.Api.OpenApi;
 using Banking.Application;
 using Banking.Infrastructure;
 using Banking.Infrastructure.Messaging;
+using Banking.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -15,8 +17,7 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Structured logging: every line carries its properties (CorrelationId,
-// TraceId, ...) instead of burying them in the message text.
+// Yapılandırılmış loglama: her satır CorrelationId/TraceId gibi alanları property olarak taşır
 builder.Host.UseSerilog((context, loggerConfiguration) => loggerConfiguration
     .ReadFrom.Configuration(context.Configuration)
     .Enrich.FromLogContext());
@@ -28,8 +29,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-// Brute-force guard on the credential endpoints: a small per-IP budget per
-// minute. The limit is configuration so tests can loosen it.
+// Kimlik doğrulama endpoint'lerinde IP başına dakikalık limit; testler için config'ten gevşetilebilir
 builder.Services.AddRateLimiter(limiter =>
 {
     limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -49,13 +49,13 @@ builder.Services.AddOpenTelemetry()
         serviceInstanceId: Environment.MachineName))
     .WithTracing(tracing => tracing
         .AddAspNetCoreInstrumentation(options =>
-            // The metrics scrape endpoint would drown real traffic in noise.
+            // Metrik scrape endpoint'i gerçek trafiği gürültüye boğardı
             options.Filter = context => context.Request.Path != "/metrics")
         .AddHttpClientInstrumentation()
-        .AddNpgsql() // database spans: every EF Core command shows up under its handler
+        .AddNpgsql() // her EF Core komutu kendi handler'ının altında span olarak görünür
         .AddSource(BankingDiagnostics.ActivitySourceName)
         .AddSource(MessagingDiagnostics.ActivitySourceName)
-        .AddOtlpExporter()) // Jaeger (docker-compose) listens on localhost:4317 by default
+        .AddOtlpExporter()) // Jaeger (docker-compose) varsayılan olarak localhost:4317'yi dinler
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
@@ -64,14 +64,22 @@ builder.Services.AddOpenTelemetry()
 
 var app = builder.Build();
 
+// Varsayılan olarak KAPALIDIR: şema değişikliği üretimde ayrı bir dağıtım adımıdır.
+// Yalnızca "docker compose --profile full up" demosu, şemayı kendi kaldırabilsin diye açar.
+if (app.Configuration.GetValue("Database:MigrateOnStartup", false))
+{
+    await using var migrationScope = app.Services.CreateAsyncScope();
+    await migrationScope.ServiceProvider.GetRequiredService<BankingDbContext>().Database.MigrateAsync();
+}
+
 app.UseExceptionHandler();
 app.UseMiddleware<CorrelationIdMiddleware>();
-app.UseSerilogRequestLogging(); // one structured completion event per request
+app.UseSerilogRequestLogging(); // her istek için tek yapılandırılmış tamamlanma logu
 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.MapScalarApiReference(); // interactive API reference at /scalar/v1
+    app.MapScalarApiReference(); // /scalar/v1'de interaktif API referansı
 }
 
 app.UseHttpsRedirection();
@@ -79,9 +87,9 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapPrometheusScrapingEndpoint(); // /metrics for the Prometheus scraper
+app.MapPrometheusScrapingEndpoint(); // Prometheus scraper için /metrics
 
-// Liveness = the process answers; readiness = PostgreSQL and RabbitMQ reachable.
+// Liveness = süreç cevap veriyor mu; readiness = Postgres ve RabbitMQ erişilebilir mi
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
 

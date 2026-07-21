@@ -3,11 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Banking.Api.Middleware;
 
-/// <summary>
-/// Last line of defense for unexpected exceptions: logs the failure and returns
-/// an opaque 500 ProblemDetails so no stack trace or internals leak to clients.
-/// Expected business failures never reach here — they travel as Result values.
-/// </summary>
+// Beklenmeyen hatalar için son savunma hattı; stack trace sızdırmadan opak 500 döner
 internal sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(

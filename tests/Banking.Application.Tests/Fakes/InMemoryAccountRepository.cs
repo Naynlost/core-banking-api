@@ -157,11 +157,7 @@ internal sealed class InMemoryTransactionRepository : ITransactionRepository
             t.Entries.Any(e => e.AccountId == accountId && e.Direction == EntryDirection.Debit)));
 }
 
-/// <summary>
-/// Mimics the transactional coupling between the idempotency table and the unit
-/// of work: staged records become visible only after a successful save, and are
-/// discarded when the save fails — exactly like a database rollback.
-/// </summary>
+// Hazırlanan kayıtlar sadece başarılı save sonrası görünür olur, başarısızlıkta rollback gibi düşer
 internal sealed class StagingIdempotencyStore : IIdempotencyStore
 {
     private readonly Dictionary<(string Key, string UserId), IdempotencyRecord> _committed = [];
@@ -207,7 +203,7 @@ internal sealed class InMemoryOutbox : IOutbox
 
 internal sealed class FakeUnitOfWork(StagingIdempotencyStore? idempotencyStore = null) : IUnitOfWork
 {
-    /// <summary>Exceptions to throw on successive saves before finally succeeding.</summary>
+    // Sonunda başarılı olmadan önce ardışık save'lerde fırlatılacak exception'lar
     public Queue<Exception> PendingFailures { get; } = new();
 
     public int SaveCount { get; private set; }

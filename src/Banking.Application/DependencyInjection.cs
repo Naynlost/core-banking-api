@@ -6,11 +6,7 @@ namespace Banking.Application;
 
 public static class DependencyInjection
 {
-    /// <summary>
-    /// Registers the dispatcher and every command/query handler and validator in
-    /// this assembly, so adding a new use case never requires touching DI
-    /// configuration.
-    /// </summary>
+    // Assembly'deki tüm handler/validator'ları tarar; yeni bir use case DI konfigürasyonuna dokunmaz
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<IDispatcher, Dispatcher>();

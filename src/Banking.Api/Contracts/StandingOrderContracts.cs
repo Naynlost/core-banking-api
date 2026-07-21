@@ -1,9 +1,6 @@
 namespace Banking.Api.Contracts;
 
-/// <summary>
-/// Frequency is "Daily", "Weekly" or "Monthly". FirstRunAt omitted means the
-/// first occurrence is due immediately.
-/// </summary>
+// Frequency "Daily", "Weekly" veya "Monthly"; FirstRunAt boşsa ilk tekrar hemen vadeye girer
 public sealed record CreateStandingOrderRequest(
     Guid SourceAccountId,
     Guid DestinationAccountId,

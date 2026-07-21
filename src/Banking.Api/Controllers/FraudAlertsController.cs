@@ -9,11 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Banking.Api.Controllers;
 
-/// <summary>
-/// Back-office review queue for flagged transactions. Unlike the customer
-/// endpoints this is gated by the fraud-reviewer role: a regular customer
-/// token gets 403 regardless of account ownership.
-/// </summary>
+// Hesap sahipliği değil, fraud-reviewer rolü ile korunur; normal müşteri token'ı 403 alır
 [ApiController]
 [Authorize(Roles = FraudReview.ReviewerRole)]
 [Route("api/fraud-alerts")]
@@ -32,7 +28,6 @@ public sealed class FraudAlertsController(IDispatcher dispatcher) : ControllerBa
         return result.IsSuccess ? Ok(result.Value) : this.FailureProblem(result.Error);
     }
 
-    /// <summary>Closes an open alert as confirmed fraud or a dismissed false positive.</summary>
     [HttpPost("{id:guid}/resolve")]
     public async Task<IActionResult> Resolve(
         Guid id, ResolveFraudAlertRequest request, CancellationToken cancellationToken)

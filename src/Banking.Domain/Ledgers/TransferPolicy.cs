@@ -4,16 +4,10 @@ using Banking.Domain.ValueObjects;
 
 namespace Banking.Domain.Ledgers;
 
-/// <summary>
-/// The rules for customer-to-customer transfers, independent of where the
-/// entries are stored. The caller passes in the source account's current
-/// balance and what it has already sent today (both come from the ledger).
-/// On success you get a balanced transaction back: source debited, destination
-/// credited. Cash accounts are not involved in transfers.
-/// </summary>
+// Müşteriden müşteriye transfer kuralları; bakiye ve günlük gönderim ledger'dan gelir
 public static class TransferPolicy
 {
-    /// <summary>Every transfer transaction uses this description; the daily limit query filters on it.</summary>
+    // Günlük limit sorgusu bu açıklamaya göre filtreler
     public const string TransferDescription = "Transfer";
 
     public static Result<Transaction> Transfer(
@@ -34,7 +28,7 @@ public static class TransferPolicy
             return Result.Failure<Transaction>(AccountErrors.Closed);
         }
 
-        // Only the sender needs KYC; receiving money is always allowed.
+        // Sadece gönderen için KYC şartı var, alım her zaman serbest
         if (!source.IsKycVerified)
         {
             return Result.Failure<Transaction>(AccountErrors.KycNotVerified);

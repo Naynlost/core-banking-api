@@ -4,14 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Banking.Application.Common;
 
-/// <summary>
-/// The shared skeleton of every idempotent money movement (transfer, deposit,
-/// withdrawal): replay the stored result when the idempotency key is known,
-/// otherwise run the attempt; retry on optimistic-concurrency conflicts against
-/// fresh state, and when the same key was committed concurrently, return the
-/// winner's result. Each attempt gets its own DI scope, because a DbContext
-/// whose save failed still tracks the rejected changes.
-/// </summary>
+// Key biliniyorsa eski sonucu döner, yoksa dener; çakışmada taze DI scope'uyla tekrar dener
 internal static class IdempotentMovement
 {
     internal const int MaxAttempts = 3;
@@ -41,7 +34,7 @@ internal static class IdempotentMovement
             }
             catch (ConcurrencyConflictException) when (attempt < MaxAttempts)
             {
-                // Another movement touched one of the accounts; retry on fresh state.
+                // Başka bir hareket hesaplardan birine dokunmuş, taze state ile tekrar dene
             }
             catch (ConcurrencyConflictException)
             {
@@ -49,8 +42,7 @@ internal static class IdempotentMovement
             }
             catch (UniqueConstraintViolationException)
             {
-                // The same idempotency key was committed concurrently: our attempt
-                // rolled back with the failed insert, so return the committed outcome.
+                // Aynı key eş zamanlı commit edilmiş: bizim insert rollback oldu, kazananın sonucunu döndür
                 var stored = await GetStoredResultAsync(scopeFactory, idempotencyKey, userId, cancellationToken);
                 if (stored is not null)
                 {

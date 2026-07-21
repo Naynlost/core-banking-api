@@ -32,7 +32,7 @@ public class TransferMoneyCommandHandlerTests
         _destination.CompleteKyc();
         _accounts.AddAsync(_source, CancellationToken.None);
         _accounts.AddAsync(_destination, CancellationToken.None);
-        _transactions.SetTotals(_source.Id, debits: 0, credits: 100m); // balance: 100 TRY
+        _transactions.SetTotals(_source.Id, debits: 0, credits: 100m); // bakiye: 100 TRY
     }
 
     private TransferMoneyCommandHandler BuildHandler(IIdempotencyStore? idempotencyOverride = null)
@@ -94,7 +94,7 @@ public class TransferMoneyCommandHandlerTests
     {
         await BuildHandler().HandleAsync(Command(), CancellationToken.None);
 
-        // 1 from CompleteKyc in the fixture + 1 from the movement.
+        // Fixture'daki CompleteKyc'den 1 + harekettten 1
         _source.Version.ShouldBe(2);
         _destination.Version.ShouldBe(2);
     }
@@ -102,7 +102,7 @@ public class TransferMoneyCommandHandlerTests
     [Fact]
     public async Task Handle_WhenSourceKycIsPending_FailsWithoutSaving()
     {
-        var pending = Account.Open("user-1", Currency.Try).Value; // KYC never completed
+        var pending = Account.Open("user-1", Currency.Try).Value; // KYC hiç tamamlanmadı
         await _accounts.AddAsync(pending, CancellationToken.None);
         _transactions.SetTotals(pending.Id, debits: 0, credits: 100m);
 
@@ -119,7 +119,7 @@ public class TransferMoneyCommandHandlerTests
     public async Task Handle_WhenDailyLimitWouldBeExceeded_FailsWithoutSaving()
     {
         _transactions.SetTotals(_source.Id, debits: 0, credits: 30_000m);
-        _transactions.SetTransferredToday(15_000m); // limit is 20.000
+        _transactions.SetTransferredToday(15_000m); // limit 20.000
 
         var result = await BuildHandler().HandleAsync(Command(amount: 6_000m), CancellationToken.None);
 
@@ -218,8 +218,7 @@ public class TransferMoneyCommandHandlerTests
     [Fact]
     public async Task Handle_WhenSameKeyCommittedConcurrently_ReturnsTheCommittedResult()
     {
-        // Simulates losing the unique-key race: our save fails, the competitor's
-        // record is what the store returns afterwards.
+        // Unique-key yarışını kaybetmeyi simüle eder: save başarısız olur, store rakibin kaydını döner
         var competitorTransactionId = Guid.NewGuid();
         var store = new RacingIdempotencyStore(
             new IdempotencyRecord("key-1", "user-1", competitorTransactionId, Now));

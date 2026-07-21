@@ -29,7 +29,7 @@ internal sealed class CompleteKycCommandHandler(
         }
         catch (ConcurrencyConflictException)
         {
-            // A movement bumped the account version mid-save; the client may retry.
+            // Kayıt sırasında başka bir hareket Version'ı artırmış, istemci tekrar deneyebilir
             return Result.Failure(AccountApplicationErrors.Conflict);
         }
 

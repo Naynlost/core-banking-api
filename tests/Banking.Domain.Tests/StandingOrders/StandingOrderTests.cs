@@ -56,7 +56,7 @@ public class StandingOrderTests
     {
         var order = Create(frequency);
 
-        // The executor ran late; the schedule still advances from the planned time.
+        // Executor geç çalıştı ama plan yine planlanan zamandan ilerliyor
         order.RecordRun(Now.AddHours(5), error: null);
 
         order.NextRunAt.ShouldBe(Now.AddDays(days));

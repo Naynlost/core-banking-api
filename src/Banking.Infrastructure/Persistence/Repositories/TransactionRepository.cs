@@ -79,8 +79,7 @@ internal sealed class TransactionRepository(BankingDbContext context) : ITransac
         AccountId accountId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken) =>
         await TransferDebits(accountId, from, to).CountAsync(cancellationToken);
 
-    // Every transfer debits its source exactly once, so the debit legs of
-    // transfer transactions are both the amount sent and the transfer count.
+    // Her transfer kaynağı tam bir kez borçlandırır; bu satırlar hem gönderilen tutarı hem sayıyı verir
     private IQueryable<LedgerEntry> TransferDebits(AccountId accountId, DateTimeOffset from, DateTimeOffset to) =>
         context.Transactions
             .Where(t => t.Description == TransferPolicy.TransferDescription)

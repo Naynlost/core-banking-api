@@ -3,18 +3,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Banking.Application.Messaging;
 
-/// <summary>
-/// The dispatcher's validation step: every registered validator for the message
-/// type runs before the handler, and the first violation short-circuits the
-/// dispatch as a normal failed Result. Rules carry the same machine-readable
-/// error codes the domain would produce, so callers cannot tell (and need not
-/// care) which layer rejected the input.
-/// </summary>
+// Handler'dan önce çalışır; kurallar domain ile aynı hata kodlarını üretir, çağıran hangi katmanın reddettiğini bilmez
 internal static class DispatcherValidation
 {
     public const string FallbackError = "validation.invalid_request";
 
-    /// <summary>Returns the first validation error code, or null when the message is valid.</summary>
+    // Geçersizse ilk hata kodunu, geçerliyse null döner
     public static async Task<string?> FindFailureAsync<TMessage>(
         TMessage message, IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {

@@ -3,11 +3,7 @@ using RabbitMQ.Client;
 
 namespace Banking.Infrastructure.Messaging;
 
-/// <summary>
-/// Lazily opens and caches a single AMQP connection for the whole process;
-/// callers open their own channels on it. Connecting lazily (instead of at
-/// startup) lets the application boot even while the broker is still down.
-/// </summary>
+// Süreç boyunca tek AMQP bağlantısı cache'lenir; lazy bağlanma broker kapalıyken de açılışa izin verir
 internal sealed class RabbitMqConnectionProvider(IOptions<RabbitMqOptions> options) : IAsyncDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);

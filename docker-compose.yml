@@ -1,4 +1,33 @@
 services:
+  # Yalnızca "full" profilinde başlar: `docker compose --profile full up -d` tüm sistemi
+  # tek komutla kaldırır. Profilsiz `docker compose up -d` eskisi gibi sadece altyapıyı
+  # açar ve API'yi host'ta çalıştırırsın. Konteyner 8080 dinler ama host'ta yine 5000'e
+  # yayınlanır; böylece README'deki adresler ve Prometheus hedefi iki modda da geçerlidir.
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: banking-api
+    profiles: ["full"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__BankingDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-banking};Username=${POSTGRES_USER:-banking};Password=${POSTGRES_PASSWORD:-banking_dev}"
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__UserName: ${RABBITMQ_USER:-banking}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD:-banking_dev}
+      # Yalnızca yerel demo içindir; gerçek ortamda sır olarak enjekte edilir.
+      Jwt__Secret: ${JWT_SECRET:-yerel-demo-icin-en-az-32-byte-uzunlugunda-secret}
+      # Demoyu tek komuta indirmek için şemayı açılışta uygular (üretimde kapalı).
+      Database__MigrateOnStartup: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+    ports:
+      - "5000:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
   postgres:
     image: postgres:17-alpine
     container_name: banking-postgres
@@ -41,7 +70,7 @@ services:
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     extra_hosts:
-      - "host.docker.internal:host-gateway" # API runs on the host during development
+      - "host.docker.internal:host-gateway" # geliştirmede API host'ta çalışır
     ports:
       - "9090:9090"
 
@@ -49,7 +78,7 @@ services:
     image: grafana/grafana-oss:12.0.0
     container_name: banking-grafana
     environment:
-      # Local dev only: open the dashboard without a login step.
+      # Yalnızca yerel geliştirme: dashboard'u giriş adımı olmadan açar
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
     volumes:
@@ -65,7 +94,7 @@ services:
     container_name: banking-jaeger
     ports:
       - "16686:16686" # UI -> http://localhost:16686
-      - "4317:4317"   # OTLP gRPC (the API exports traces here)
+      - "4317:4317"   # OTLP gRPC (API trace'leri buraya gönderir)
       - "4318:4318"   # OTLP HTTP
 
 volumes:

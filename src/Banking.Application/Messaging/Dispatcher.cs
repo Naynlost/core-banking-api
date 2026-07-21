@@ -5,15 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Banking.Application.Messaging;
 
-/// <summary>
-/// Resolves the handler for a message from the service provider and invokes it.
-/// The caller only knows the message's interface (e.g. ICommand&lt;Guid&gt;), so the
-/// concrete handler type is only known at runtime; a small generic wrapper is
-/// instantiated once per message type and cached to keep dispatch reflection-free
-/// after the first call. Registered validators run before the handler, so an
-/// invalid message never reaches it. Every dispatch runs inside its own trace
-/// span, so the request → handler → database chain is visible in traces.
-/// </summary>
+// Mesaj tipi başına generic wrapper bir kez oluşturulup cache'lenir, sonraki dispatch'ler reflection'sız çalışır
 internal sealed class Dispatcher(IServiceProvider serviceProvider) : IDispatcher
 {
     private static readonly ConcurrentDictionary<Type, object> Wrappers = new();
@@ -62,7 +54,7 @@ internal sealed class Dispatcher(IServiceProvider serviceProvider) : IDispatcher
     private static Activity? StartActivity(string messageName) =>
         BankingDiagnostics.ActivitySource.StartActivity($"handle {messageName}");
 
-    // Business failures are expected outcomes, not span errors; they surface as a tag.
+    // İş kuralı hataları span error değil, tag olarak görünür
     private static void TagOutcome(Activity? activity, Result result) =>
         activity?.SetTag("banking.outcome", result.IsSuccess ? "success" : result.Error);
 

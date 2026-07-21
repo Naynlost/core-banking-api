@@ -5,10 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Banking.Infrastructure.Messaging.Consumers;
 
-/// <summary>
-/// Stands in for a real notification channel (e-mail/SMS/push): logs each
-/// completed transfer.
-/// </summary>
+// Gerçek bildirim kanalının (e-posta/SMS/push) yerine geçer, sadece loglar
 internal sealed class TransferNotificationConsumer(
     RabbitMqConnectionProvider connections,
     IServiceScopeFactory scopeFactory,

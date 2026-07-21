@@ -11,12 +11,7 @@ using Shouldly;
 
 namespace Banking.Api.IntegrationTests.Risk;
 
-/// <summary>
-/// The back-office review loop over the real HTTP pipeline: a customer token is
-/// rejected outright, a reviewer (email listed in FraudReview:ReviewerEmails)
-/// sees the alert raised by an above-threshold transfer and closes it exactly
-/// once.
-/// </summary>
+// Gerçek HTTP pipeline üzerinden back-office inceleme döngüsü: müşteri token'ı reddedilir, reviewer görüp kapatır
 [Collection(IntegrationCollection.Name)]
 public sealed class FraudReviewTests(IntegrationInfrastructure infrastructure) : IAsyncLifetime
 {
@@ -50,11 +45,11 @@ public sealed class FraudReviewTests(IntegrationInfrastructure infrastructure) :
     [Fact]
     public async Task FraudReviewLoop_FlagListResolve_WorksEndToEndAndIsRoleGated()
     {
-        // A regular customer cannot even list the queue.
+        // Normal bir müşteri kuyruğu listeleyemez bile
         await RegisterAndLoginAsync(_customer, $"customer-{Guid.NewGuid():N}@bank.local");
         (await _customer.GetAsync("/api/fraud-alerts")).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
-        // The customer sends an above-threshold transfer that gets flagged.
+        // Müşteri eşik üstü bir transfer gönderir, işaretlenir
         var source = await CreateFundedAccountAsync(_customer, 16_000m);
         var destination = await CreateAccountAsync(_customer);
         using var transferRequest = new HttpRequestMessage(HttpMethod.Post, "/api/transfers")
@@ -67,7 +62,7 @@ public sealed class FraudReviewTests(IntegrationInfrastructure infrastructure) :
         var transactionId = (await transferResponse.Content.ReadFromJsonAsync<TransferResponse>())
             .ShouldNotBeNull().TransactionId;
 
-        // The reviewer sees it appear in the open queue (screening is async).
+        // Tarama asenkron olduğundan reviewer uyarıyı açık kuyrukta biraz sonra görür
         await RegisterAndLoginAsync(_reviewer, ReviewerEmail);
         FraudAlertResponse alert = null!;
         await TestBank.WaitUntilAsync(
@@ -81,7 +76,7 @@ public sealed class FraudReviewTests(IntegrationInfrastructure infrastructure) :
             $"an open fraud alert for transaction {transactionId}");
         alert.Rule.ShouldBe("amount_above_threshold");
 
-        // Resolving closes it once; the verdict cannot be rewritten.
+        // Karar bir kez verilir, sonradan değiştirilemez
         var resolve = await _reviewer.PostAsJsonAsync(
             $"/api/fraud-alerts/{alert.Id}/resolve",
             new ResolveFraudAlertRequest("Dismissed", "test transfer, cleared with the customer"));

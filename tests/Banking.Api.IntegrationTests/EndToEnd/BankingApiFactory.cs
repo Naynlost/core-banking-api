@@ -3,13 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Banking.Api.IntegrationTests.EndToEnd;
 
-/// <summary>
-/// Boots the real API — full pipeline, hosted services included (outbox
-/// publisher and consumers run for real) — pointed at the Testcontainers
-/// PostgreSQL and RabbitMQ instances. UseSetting feeds the values into the
-/// configuration BEFORE Program.cs runs; ConfigureAppConfiguration would be
-/// too late for values Program reads during startup.
-/// </summary>
+// Gerçek API'yi tam pipeline'ıyla Testcontainers'a bağlar; UseSetting değerleri Program.cs'den ÖNCE besler
 internal sealed class BankingApiFactory(
     IntegrationInfrastructure infrastructure,
     int authRateLimit = 1_000,
@@ -28,8 +22,7 @@ internal sealed class BankingApiFactory(
         builder.UseSetting("RabbitMq:UserName", IntegrationInfrastructure.RabbitMqUserName);
         builder.UseSetting("RabbitMq:Password", IntegrationInfrastructure.RabbitMqPassword);
         builder.UseSetting("Jwt:Secret", "e2e-test-secret-not-a-real-one-0123456789abcdef");
-        // Every test shares the loopback "IP"; a real per-IP budget would trip
-        // across unrelated scenarios, so it is loosened unless a test opts in.
+        // Tüm testler aynı loopback IP'yi paylaşır, test seçmediği sürece limit gevşetilir
         builder.UseSetting("RateLimiting:AuthPermitLimit", authRateLimit.ToString());
     }
 }

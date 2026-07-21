@@ -22,8 +22,7 @@ public static class DependencyInjection
             .AddIdentityAndJwtAuth(configuration)
             .AddMessaging(configuration);
 
-        // Liveness is the process itself; these checks carry the "ready" tag so
-        // /health/ready can answer "can I actually serve requests?".
+        // "ready" tag'i /health/ready'nin gerçekten istek karşılayabildiğini kontrol etmesini sağlar
         services.AddHealthChecks()
             .AddCheck<Health.PostgresHealthCheck>("postgres", tags: ["ready"])
             .AddCheck<Health.RabbitMqHealthCheck>("rabbitmq", tags: ["ready"]);

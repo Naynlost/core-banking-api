@@ -8,7 +8,7 @@ public sealed class JwtOptions
 
     public string Audience { get; init; } = string.Empty;
 
-    /// <summary>Never stored in appsettings; supplied via the Jwt__Secret environment variable.</summary>
+    // appsettings'e asla yazılmaz, Jwt__Secret environment variable'ından gelir
     public string Secret { get; init; } = string.Empty;
 
     public int AccessTokenMinutes { get; init; } = 30;

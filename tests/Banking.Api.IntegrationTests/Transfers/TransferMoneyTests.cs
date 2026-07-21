@@ -30,9 +30,9 @@ public sealed class TransferMoneyTests(IntegrationInfrastructure infrastructure)
 
         first.IsSuccess.ShouldBeTrue();
         second.IsSuccess.ShouldBeTrue();
-        second.Value.ShouldBe(first.Value); // the stored outcome is replayed
+        second.Value.ShouldBe(first.Value); // kayıtlı sonuç tekrar döner
 
-        (await TestBank.GetBalanceAsync(_provider, source)).ShouldBe(60m); // debited once, not twice
+        (await TestBank.GetBalanceAsync(_provider, source)).ShouldBe(60m); // bir kez borçlandırıldı, iki kez değil
         (await TestBank.GetBalanceAsync(_provider, destination)).ShouldBe(40m);
         (await CountTransfersAsync(source)).ShouldBe(1);
     }
@@ -42,7 +42,7 @@ public sealed class TransferMoneyTests(IntegrationInfrastructure infrastructure)
     {
         const decimal initialBalance = 100m;
         const decimal transferAmount = 10m;
-        const int attempts = 20; // twice the funds: at most 10 can succeed
+        const int attempts = 20; // bakiyenin iki katı: en fazla 10 tanesi başarılı olabilir
 
         var source = await TestBank.CreateAccountAsync(_provider, "user-a", fundedWith: initialBalance);
         var destination = await TestBank.CreateAccountAsync(_provider, "user-b");
@@ -62,7 +62,7 @@ public sealed class TransferMoneyTests(IntegrationInfrastructure infrastructure)
         var sourceBalance = await TestBank.GetBalanceAsync(_provider, source);
         var destinationBalance = await TestBank.GetBalanceAsync(_provider, destination);
 
-        // The whole point: no lost update, no overdraft, money conserved.
+        // Asıl kanıtlanan şey: lost update yok, overdraft yok, para korunuyor
         sourceBalance.ShouldBe(initialBalance - (transferAmount * successes));
         sourceBalance.ShouldBeGreaterThanOrEqualTo(0m);
         destinationBalance.ShouldBe(transferAmount * successes);

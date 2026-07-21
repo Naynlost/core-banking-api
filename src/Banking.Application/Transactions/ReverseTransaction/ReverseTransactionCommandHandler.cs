@@ -8,12 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Banking.Application.Transactions.ReverseTransaction;
 
-/// <summary>
-/// Like transfers, a reversal moves money and so competes on the accounts'
-/// version tokens — conflicts are retried on fresh state. Double reversal is
-/// prevented twice: a fast repository check up front, and the unique index on
-/// the reversal link as the authoritative guard when two reversals race.
-/// </summary>
+// Transferler gibi Version token'ı üzerinden çakışır; çift ters kayıt önce repository kontrolüyle,
+// asıl güvence olarak da reversal linkindeki unique index ile engellenir
 internal sealed class ReverseTransactionCommandHandler(
     IServiceScopeFactory scopeFactory,
     TimeProvider timeProvider) : ICommandHandler<ReverseTransactionCommand, Guid>
@@ -28,7 +24,7 @@ internal sealed class ReverseTransactionCommandHandler(
             }
             catch (ConcurrencyConflictException) when (attempt < IdempotentMovement.MaxAttempts)
             {
-                // Another movement touched one of the accounts; retry on fresh state.
+                // Başka bir hareket hesaplardan birine dokunmuş, taze state ile tekrar dene
             }
             catch (ConcurrencyConflictException)
             {
@@ -36,7 +32,7 @@ internal sealed class ReverseTransactionCommandHandler(
             }
             catch (UniqueConstraintViolationException)
             {
-                // A concurrent reversal of the same transaction won the unique index.
+                // Aynı işlemin eş zamanlı ters kaydı unique index'i kazanmış
                 return Result.Failure<Guid>(ReversalErrors.AlreadyReversed);
             }
         }
@@ -70,7 +66,7 @@ internal sealed class ReverseTransactionCommandHandler(
             involved.Add(account);
         }
 
-        // The requester must be involved at all before anything is revealed.
+        // Hiçbir şey açığa çıkmadan önce requester'ın işlemde yer aldığı doğrulanmalı
         var owned = involved.Where(a => a.Owner == command.Requester).ToList();
         if (owned.Count == 0)
         {
@@ -82,8 +78,7 @@ internal sealed class ReverseTransactionCommandHandler(
             return Result.Failure<Guid>(ReversalErrors.AlreadyReversed);
         }
 
-        // The refunder is the requester's account the original credited; if the
-        // requester was only debited, the policy rejects with the precise error.
+        // İade eden, orijinalin alacaklandırdığı hesap; sadece borçlandıysa policy net hatayla reddeder
         var refunder = owned.FirstOrDefault(a => original.Entries.Any(
                 e => e.AccountId == a.Id && e.Direction == EntryDirection.Credit))
             ?? owned[0];
@@ -111,6 +106,5 @@ internal sealed class ReverseTransactionCommandHandler(
 
 public static class ReversalApplicationErrors
 {
-    /// <summary>Optimistic concurrency retries were exhausted; the client may retry.</summary>
     public const string Conflict = "reversal.conflict";
 }

@@ -5,7 +5,7 @@ using Shouldly;
 
 namespace Banking.Api.IntegrationTests.Risk;
 
-/// <summary>Stage 6 risk controls against real PostgreSQL: daily limit and KYC gating.</summary>
+// Günlük limit ve KYC kontrolleri gerçek Postgres'e karşı
 [Collection(IntegrationCollection.Name)]
 public sealed class RiskControlsTests(IntegrationInfrastructure infrastructure) : IAsyncLifetime
 {
@@ -29,7 +29,7 @@ public sealed class RiskControlsTests(IntegrationInfrastructure infrastructure) 
         second.IsFailure.ShouldBeTrue();
         second.Error.ShouldBe(LedgerErrors.DailyLimitExceeded);
 
-        // Funds were there (balance 15.000 ≥ 6.000): only the limit blocked it.
+        // Para yeterliydi (15.000 ≥ 6.000), sadece limit engelledi
         (await TestBank.GetBalanceAsync(_provider, source)).ShouldBe(15_000m);
         (await TestBank.GetBalanceAsync(_provider, destination)).ShouldBe(15_000m);
     }

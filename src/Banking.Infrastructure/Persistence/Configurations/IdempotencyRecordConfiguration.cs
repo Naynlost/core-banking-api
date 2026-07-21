@@ -10,7 +10,7 @@ internal sealed class IdempotencyRecordConfiguration : IEntityTypeConfiguration<
     {
         builder.ToTable("idempotency_keys");
 
-        // Composite key: the same idempotency key from different users must not collide.
+        // Farklı kullanıcılardan gelen aynı key çakışmasın diye composite key
         builder.HasKey(r => new { r.Key, r.UserId });
 
         builder.Property(r => r.Key).HasMaxLength(128);

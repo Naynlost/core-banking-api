@@ -18,7 +18,7 @@ internal sealed class ResolveFraudAlertCommandHandler(
             return Result.Failure(FraudReviewErrors.NotFound);
         }
 
-        // The validator already rejected values outside Confirmed/Dismissed.
+        // Validator zaten Confirmed/Dismissed dışındaki değerleri reddetmişti
         var resolution = Enum.Parse<FraudAlertStatus>(command.Resolution, ignoreCase: true);
 
         var result = alert.Resolve(resolution, command.Note, timeProvider.GetUtcNow());

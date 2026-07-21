@@ -36,7 +36,7 @@ public sealed class RateLimitingTests(IntegrationInfrastructure infrastructure) 
     {
         var attempt = new LoginRequest("nobody@bank.local", "Wrong-Pass-1!");
 
-        // The budget only bounds the attempt rate; failed credentials stay 401.
+        // Limit sadece deneme hızını sınırlar, yanlış kimlik bilgisi yine 401 döner
         for (var i = 0; i < PermitLimit; i++)
         {
             (await _client.PostAsJsonAsync("/api/auth/login", attempt))
