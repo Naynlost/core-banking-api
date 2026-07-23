@@ -16,7 +16,7 @@ tek bir kolonda tutulmaz; tüm finansal hareketler çift taraflı muhasebe defte
   (unique index ile garanti).
 - **Para modeli:** Tutarlar `decimal` tabanlı `Money` value object'i ile temsil edilir;
   para birimi uyuşmazlıkları derleme ve çalışma zamanında engellenir. Bakiyenin kaynağı
-  her zaman defterdir; okuma tarafında `account_balances` **projeksiyonu** kullanılır —
+  her zaman defterdir; okuma tarafında `account_balances` **projeksiyonu** kullanılır
   defter yazımıyla AYNI veritabanı transaction'ında güncellenen, tamamen türetilmiş ve
   defterden her an yeniden inşa edilebilir bir read model (okuma `SUM` yerine O(1)).
 - **Çoklu para birimi ve çapraz kur transferi:** Farklı para birimindeki hesaplar arasında
