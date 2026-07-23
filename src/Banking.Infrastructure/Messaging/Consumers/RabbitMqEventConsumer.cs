@@ -109,7 +109,7 @@ internal abstract class RabbitMqEventConsumer(
             }
             else
             {
-                // Mesaj id'si yok, dedupe imkansız — olduğu gibi işle
+                // Mesaj id'si yok, dedupe imkansız; olduğu gibi işle
                 await HandleAsync(eventType, payload, cancellationToken);
             }
 

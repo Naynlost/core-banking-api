@@ -1,4 +1,4 @@
-# ADR 0009 — Yalnızca ücretsiz ve açık kaynak bağımlılıklar
+# ADR 0009: Yalnızca ücretsiz ve açık kaynak bağımlılıklar
 
 **Durum:** Kabul edildi (Aşama 0, sürekli geçerli)
 
@@ -27,7 +27,7 @@ Ticarileşen paketler yerine kullanılanlar:
 Kullanımda kalan büyük bağımlılıkların tamamı ücretsizdir: .NET/ASP.NET Core ve EF Core
 (MIT), PostgreSQL (PostgreSQL License), Npgsql (PostgreSQL License), RabbitMQ (MPL 2.0),
 FluentValidation (Apache 2.0), Serilog (Apache 2.0), OpenTelemetry (Apache 2.0),
-Prometheus/Grafana OSS (Apache 2.0/AGPL — yalnızca yerel geliştirmede), xUnit (Apache
+Prometheus/Grafana OSS (Apache 2.0/AGPL, yalnızca yerel geliştirmede), xUnit (Apache
 2.0), Testcontainers (MIT), Scalar (MIT).
 
 ## Sonuçlar

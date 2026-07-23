@@ -1,4 +1,4 @@
-# ADR 0002 — Tek bakiye kolonu yerine çift taraflı defter
+# ADR 0002: Tek bakiye kolonu yerine çift taraflı defter
 
 **Durum:** Kabul edildi (Aşama 1)
 

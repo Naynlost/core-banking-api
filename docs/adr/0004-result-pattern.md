@@ -1,4 +1,4 @@
-# ADR 0004 — İş kuralı hatalarında exception değil Result pattern
+# ADR 0004: İş kuralı hatalarında exception değil Result pattern
 
 **Durum:** Kabul edildi (Aşama 1)
 

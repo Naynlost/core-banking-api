@@ -61,7 +61,7 @@ internal sealed class FraudScreeningConsumer(
             await context.FraudAlerts.AddAsync(FraudAlert.Raise(transactionId, flag, flaggedAt), cancellationToken);
             BankingDiagnostics.FraudAlerts.Add(1, new KeyValuePair<string, object?>("rule", flag.Rule));
             _logger.LogWarning(
-                "Fraud screening: transaction {TransactionId} FLAGGED by {Rule} — {Detail}",
+                "Fraud screening: transaction {TransactionId} FLAGGED by {Rule}: {Detail}",
                 transfer.TransactionId, flag.Rule, flag.Detail);
         }
 

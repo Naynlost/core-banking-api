@@ -1,4 +1,4 @@
-# ADR 0001 — Clean Architecture ve içe doğru bağımlılık
+# ADR 0001: Clean Architecture ve içe doğru bağımlılık
 
 **Durum:** Kabul edildi (Aşama 0)
 
@@ -35,5 +35,5 @@ Banking.Infrastructure → Banking.Application, Banking.Domain
 - Bedeli dolaylılıktır: her dış bağımlılık için Application'da bir arayüz, Infrastructure'da
   bir implementasyon yazılır. Bu proje boyutunda maliyet düşük, kazanç yüksektir.
 - Kural derleyici tarafından tam zorlanamaz (Infrastructure yanlışlıkla Api'yi referans
-  alabilir); bu boşluk mimari testlerle (NetArchTest) kapatılır — bkz. test projesindeki
+  alabilir); bu boşluk mimari testlerle (NetArchTest) kapatılır, bkz. test projesindeki
   `ArchitectureTests`.

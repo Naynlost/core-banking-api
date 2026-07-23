@@ -1,4 +1,4 @@
-# ADR 0005 — MediatR yerine kendi hafif CQRS dispatcher'ımız
+# ADR 0005: MediatR yerine kendi hafif CQRS dispatcher'ımız
 
 **Durum:** Kabul edildi (Aşama 3)
 
@@ -6,8 +6,8 @@
 
 Command/query ayrımı ve "bir istek → bir handler" modeli isteniyor. .NET dünyasında
 bunun fiili standardı MediatR'dı; ancak v13 ile **ticari lisansa** geçti (bkz. ADR 0009).
-Ayrıca MediatR'ın sağladığı çekirdek işlev — DI container'dan doğru handler'ı bulup
-çağırmak — küçük bir kod parçasıdır; bunun için dış bağımlılık taşımak gerekmez.
+Ayrıca MediatR'ın sağladığı çekirdek işlev (DI container'dan doğru handler'ı bulup
+çağırmak) küçük bir kod parçasıdır; bunun için dış bağımlılık taşımak gerekmez.
 
 ## Karar
 
@@ -35,4 +35,4 @@ Kendi hafif dispatcher'ımızı yazdık (Banking.Application içinde, dış bağ
 - Sıfır lisans riski, sıfır dış bağımlılık; davranışın tamamı ~1 dosyada okunabilir
   ve testlidir (dispatcher'ın kendisi ve validation pipeline'ı birim testlidir).
 - MediatR'ın notification/streaming gibi ileri özellikleri yoktur; ihtiyaç olursa
-  bilinçli olarak eklenir, bedavaya gelen sihir yoktur — bu, tercih edilen bir takastır.
+  bilinçli olarak eklenir, bedavaya gelen sihir yoktur; bu, tercih edilen bir takastır.

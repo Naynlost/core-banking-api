@@ -9,7 +9,7 @@ Amaç: işe alım sürecinde birinin `docker compose` kurmadan tıklayabileceği
 | PostgreSQL | [Neon](https://neon.tech) | 0,5 GB, sınırsız süre |
 | RabbitMQ | [CloudAMQP](https://www.cloudamqp.com) "Little Lemur" | 1M mesaj/ay |
 
-## 1. Neon — PostgreSQL
+## 1. Neon: PostgreSQL
 
 1. Neon'da proje aç, `banking` veritabanı oluştur; connection string'i kopyala.
 2. Şemayı yerelden uygula (uygulama açılışta migration çalıştırmaz):
@@ -20,14 +20,14 @@ Amaç: işe alım sürecinde birinin `docker compose` kurmadan tıklayabileceği
      dotnet ef database update -p src/Banking.Infrastructure -s src/Banking.Api
    ```
 
-## 2. CloudAMQP — RabbitMQ
+## 2. CloudAMQP: RabbitMQ
 
 1. "Little Lemur" (free) instance aç; panelden host, kullanıcı, parola ve vhost değerlerini al.
-2. CloudAMQP **AMQPS (TLS, port 5671)** ister ve vhost genellikle kullanıcı adıyla aynıdır —
+2. CloudAMQP **AMQPS (TLS, port 5671)** ister ve vhost genellikle kullanıcı adıyla aynıdır;
    uygulama bunları `RabbitMq__UseTls=true`, `RabbitMq__Port=5671`, `RabbitMq__VirtualHost=<vhost>`
    ayarlarıyla destekler.
 
-## 3. Render — API
+## 3. Render: API
 
 1. GitHub repo'sunu bağla; "Web Service" → Runtime: **Docker** (repo kökündeki `Dockerfile`).
 2. Environment değişkenleri:

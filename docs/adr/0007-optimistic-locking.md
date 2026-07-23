@@ -1,4 +1,4 @@
-# ADR 0007 — Hesap versiyonu ile optimistic locking
+# ADR 0007: Hesap versiyonu ile optimistic locking
 
 **Durum:** Kabul edildi (Aşama 4)
 
@@ -6,7 +6,7 @@
 
 İki transfer aynı hesaptan aynı anda çekerse, ikisi de "bakiye yeterli" görüp ikisi de
 işlem yazabilir ve hesap eksiye düşer (lost update / TOCTOU). Defter append-only
-olduğundan satır düzeyinde doğal bir yazma çakışması **oluşmaz** — iki INSERT birbirini
+olduğundan satır düzeyinde doğal bir yazma çakışması **oluşmaz**: iki INSERT birbirini
 engellemez; çakışmayı bizim üretmemiz gerekir. Aynı koruma günlük limit için de
 şarttır: limit kontrolü de "oku, karar ver, yaz" örüntüsüdür.
 

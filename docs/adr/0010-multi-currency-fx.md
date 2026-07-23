@@ -1,4 +1,4 @@
-# ADR 0010 — Çapraz kur transferi: para birimi başına denge ve FX pozisyon hesapları
+# ADR 0010: Çapraz kur transferi, para birimi başına denge ve FX pozisyon hesapları
 
 **Durum:** Kabul edildi (Aşama 11)
 
@@ -8,7 +8,7 @@ Hesaplar tek para biriminde açılıyordu ve farklı para birimindeki iki hesap 
 transfer reddediliyordu (`ledger.currency_mismatch`). Çapraz kur transferi eklemek
 istendiğinde defterin temel kuralıyla doğrudan çakışan bir sorun çıktı:
 
-`Transaction` iki değişmez uyguluyordu — tüm satırlar aynı para biriminde olmalı ve
+`Transaction` iki değişmez uyguluyordu: tüm satırlar aynı para biriminde olmalı ve
 toplam borç toplam alacağa eşit olmalı. "1.000 TRY borç + 24 USD alacak" biçiminde bir
 işlem bu kurala göre dengesizdir ve **haklı olarak** öyledir: farklı para birimleri
 toplanamaz, 1.000 ile 24'ü karşılaştırmak anlamsızdır. Yani çapraz kur işlemi, tek bir

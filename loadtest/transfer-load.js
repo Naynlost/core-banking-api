@@ -3,7 +3,7 @@ import { check } from 'k6';
 
 // Yük profili: 10 sanal kullanıcı 30 saniye boyunca POST /api/transfers'e yüklenir.
 // Her kullanıcının kendi fonlanmış hesap çifti vardır; böylece ölçülen şey tek bir
-// hesap üzerindeki yapay çekişme değil, pipeline'ın kendisi olur. Tutar 1 TRY —
+// hesap üzerindeki yapay çekişme değil, pipeline'ın kendisi olur. Tutar 1 TRY,
 // 20.000'lik günlük transfer limitinin çok altında kalmak için.
 //
 // Çalıştırma (API http://localhost:5000 dinlerken):

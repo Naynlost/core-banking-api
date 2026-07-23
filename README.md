@@ -16,7 +16,7 @@ tek bir kolonda tutulmaz; tüm finansal hareketler çift taraflı muhasebe defte
   (unique index ile garanti).
 - **Para modeli:** Tutarlar `decimal` tabanlı `Money` value object'i ile temsil edilir;
   para birimi uyuşmazlıkları derleme ve çalışma zamanında engellenir. Bakiyenin kaynağı
-  her zaman defterdir; okuma tarafında `account_balances` **projeksiyonu** kullanılır —
+  her zaman defterdir; okuma tarafında `account_balances` **projeksiyonu** kullanılır:
   defter yazımıyla AYNI veritabanı transaction'ında güncellenen, tamamen türetilmiş ve
   defterden her an yeniden inşa edilebilir bir read model (okuma `SUM` yerine O(1)).
 - **Çoklu para birimi ve çapraz kur transferi:** Farklı para birimindeki hesaplar arasında
@@ -30,7 +30,7 @@ tek bir kolonda tutulmaz; tüm finansal hareketler çift taraflı muhasebe defte
   bankacılık yuvarlaması `ExchangeRate` value object'inde toplanır.
   `GET /api/fx/quote` transfer öncesi kuru ve hesaplanacak tutarı gösterir.
   Ayrıntılı gerekçe: [ADR 0010](docs/adr/0010-multi-currency-fx.md).
-- **Hesap yaşam döngüsü:** hesap açma, para yatırma/çekme (`/deposits`, `/withdrawals` —
+- **Hesap yaşam döngüsü:** hesap açma, para yatırma/çekme (`/deposits`, `/withdrawals`;
   kasa hesabına karşı çift taraflı kayıt), sayfalı ekstre (`GET /api/accounts/{id}/transactions`),
   bakiye sıfırken kapatma (`POST /api/accounts/{id}/close`).
 - **Idempotent para hareketleri:** Transfer, yatırma ve çekmede `Idempotency-Key` başlığı
@@ -208,14 +208,14 @@ dotnet test
 
 Test paketi dört katmandan oluşur (204 test):
 
-- **Domain birim testleri:** Defter kuralları — dengeli kayıt, yetersiz bakiye, kapalı hesap,
+- **Domain birim testleri:** Defter kuralları: dengeli kayıt, yetersiz bakiye, kapalı hesap,
   para birimi uyuşmazlığı, günlük limit, KYC, fraud kuralları ve çözümleme yaşam döngüsü,
   standing order zamanlaması ve ters kayıt (reversal) politikası.
-- **Application testleri:** Handler davranışları — idempotency replay, çakışmada yeniden
+- **Application testleri:** Handler davranışları: idempotency replay, çakışmada yeniden
   deneme, outbox'a olay kuyruklanması, yatırma/çekme, hesap kapatma, reversal, fraud
   inceleme, standing order sahiplik kuralları ve dispatcher'ın validation pipeline'ı.
 - **Mimari testleri:** NetArchTest ile Clean Architecture bağımlılık kuralları derleme
-  sonrası doğrulanır — Domain hiçbir dış pakete referans veremez, Application
+  sonrası doğrulanır: Domain hiçbir dış pakete referans veremez, Application
   Infrastructure/EF Core/ASP.NET Core göremez, controller'lar use case katmanını atlayamaz.
   Yanlış yönde eklenen bir referans CI'da testi kırar.
 - **Integration ve uçtan uca testler:** Testcontainers her koşuda geçici PostgreSQL 17 ve

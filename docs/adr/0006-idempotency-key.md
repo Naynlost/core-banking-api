@@ -1,4 +1,4 @@
-# ADR 0006 — Para hareketlerinde zorunlu `Idempotency-Key`
+# ADR 0006: Para hareketlerinde zorunlu `Idempotency-Key`
 
 **Durum:** Kabul edildi (Aşama 4)
 
@@ -13,8 +13,8 @@ demektir. "İstemci tekrar etmesin" bir çözüm değildir; tekrar etmemek de te
 
 - Transfer, yatırma ve çekme endpoint'lerinde **`Idempotency-Key` başlığı zorunludur**;
   anahtar istemci tarafından üretilir (ör. UUID).
-- `idempotency_keys` tablosu anahtar kaydını tutar; birincil anahtar **(key, user_id)**
-  — bir kullanıcının anahtarı başkasının işlemine çarpamaz.
+- `idempotency_keys` tablosu anahtar kaydını tutar; birincil anahtar **(key, user_id)**,
+  yani bir kullanıcının anahtarı başkasının işlemine çarpamaz.
 - Kayıt, para hareketiyle **aynı veritabanı transaction'ında** yazılır: işlem varsa
   anahtar da vardır, işlem rollback olduysa anahtar da yoktur. "Anahtar yazıldı ama
   işlem kayboldu" arası durum yapısal olarak imkânsızdır.
@@ -30,5 +30,5 @@ demektir. "İstemci tekrar etmesin" bir çözüm değildir; tekrar etmemek de te
   mu" sorusu ortadan kalkar. Integration testi bunu gerçek Postgres'te kanıtlar
   (aynı anahtarla iki çağrı → tek transfer).
 - Bedeli her para hareketinde bir tablo yazımı ve istemciye anahtar üretme
-  yükümlülüğüdür — endüstri standardı bir bedel (Stripe ve benzeri API'ler aynı
+  yükümlülüğüdür; endüstri standardı bir bedel (Stripe ve benzeri API'ler aynı
   deseni kullanır).

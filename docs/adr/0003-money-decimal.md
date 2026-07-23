@@ -1,4 +1,4 @@
-# ADR 0003 — Para için `double` değil `decimal` tabanlı `Money` value object'i
+# ADR 0003: Para için `double` değil `decimal` tabanlı `Money` value object'i
 
 **Durum:** Kabul edildi (Aşama 1)
 

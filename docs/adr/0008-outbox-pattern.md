@@ -1,4 +1,4 @@
-# ADR 0008 — Güvenilir olay yayını için outbox + inbox + DLQ
+# ADR 0008: Güvenilir olay yayını için outbox + inbox + DLQ
 
 **Durum:** Kabul edildi (Aşama 5, DLQ Aşama 9)
 
@@ -22,7 +22,7 @@ tablosuna yazılır. Tek sistem, tek commit: transfer varsa olay kaydı da vard�
 - `OutboxPublisher` (BackgroundService) bekleyen satırları periyodik toplar ve
   RabbitMQ `banking.events` topic exchange'ine **publisher confirm** ile basar; satır
   ancak broker onayından sonra `processed_at` alır. Uygulama çökse bile bekleyen satır
-  kalır ve yeniden başlatmada yayınlanır — teslim garantisi **at-least-once**.
+  kalır ve yeniden başlatmada yayınlanır; teslim garantisi **at-least-once**.
 - At-least-once tekrar üretebilir; consumer tarafında `inbox_messages` tablosu
   (consumer başına dedupe) tekrarları ayıklar → **effectively-once** işleme.
 - İşlenemeyen mesaj bir kez requeue edilir; ikinci hatada **dead-letter** exchange'i
@@ -39,5 +39,5 @@ tablosuna yazılır. Tek sistem, tek commit: transfer varsa olay kaydı da vard�
   senaryosunu kanıtlar (olayı yazan süreç kapatılır, yenisi bekleyeni yayınlar).
 - Bedeli gecikme (polling aralığı kadar) ve şemaya iki tablo eklenmesidir; bankacılık
   olayları için saniye altı gecikme fazlasıyla kabul edilebilir.
-- Consumer'lar idempotent olmak zorundadır — bu bir kısıt değil, dağıtık sistemlerde
+- Consumer'lar idempotent olmak zorundadır; bu bir kısıt değil, dağıtık sistemlerde
   zaten kaçınılmaz olan gerçeğin açıkça kabulüdür.
