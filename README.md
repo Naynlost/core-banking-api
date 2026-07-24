@@ -122,6 +122,10 @@ docker compose --profile full up -d
 API dahil tüm sistemi ayağa kaldırır: şemayı kendi uygular ve `http://localhost:5000`
 adresinden yanıt verir. Denemek için aşağıdaki "Örnek kullanım" adımlarını izleyebilirsin.
 
+Varsayılan kimlik bilgileriyle çalışır; parolaları veya JWT anahtarını değiştirmek istersen
+`.env.example` dosyasını `.env` olarak kopyalayıp düzenle (ayarlanmayan her değişken için
+yerel varsayılan kullanılır).
+
 ### Geliştirme için (API host'ta çalışır)
 
 ```bash
